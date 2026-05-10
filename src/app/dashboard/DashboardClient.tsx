@@ -3,269 +3,388 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import AccountsOverview from './components/AccountsOverview'
-import RecentTransactions from './components/RecentTransactions'
 import DashboardCharts from './components/DashboardCharts'
 import InitialSyncLoader from './components/InitialSyncLoader'
 import { useSync } from './hooks/useSync'
 import { useDashboardData } from './hooks/useDashboardData'
 import { formatCurrency, formatDate } from './utils/formatters'
+import { DashboardSkeleton } from '@/app/components/Skeleton'
+import SyncProgressOverlay from './components/SyncProgressOverlay'
+import DebtPayoffCalculator from './components/DebtPayoffCalculator'
+import EnhancedStatsGrid from './components/EnhancedStatsGrid'
+import SpendingStreaks from './components/SpendingStreaks'
+import AnomalyAlerts from './components/AnomalyAlerts'
+import { estimateTaxes } from './utils/taxEstimator'
+import type { PaycheckDeductions } from '@/lib/db/types'
+
+const SECTION_KEYS = [
+  { key: 'statsGrid', label: 'Stats' },
+  { key: 'anomalies', label: 'Alerts' },
+  { key: 'charts', label: 'Charts' },
+  { key: 'topMerchants', label: 'Top Merchants' },
+  { key: 'topCategories', label: 'Top Categories' },
+  { key: 'streaks', label: 'Streaks' },
+  { key: 'debtCalculator', label: 'Debt Calculator' },
+  { key: 'accounts', label: 'Accounts' },
+  { key: 'recentTransactions', label: 'Recent Txns' },
+] as const
+
+type SectionKey = (typeof SECTION_KEYS)[number]['key']
 
 export default function DashboardClient({ userId }: { userId: string }) {
-  // State
   const [timeRange, setTimeRange] = useState<string>('monthly')
   const [showLoader, setShowLoader] = useState(true)
   const [checkingSync, setCheckingSync] = useState(true)
+  const [monthlyIncome, setMonthlyIncome] = useState<number>(0)
+  const [userAge, setUserAge] = useState<number>(0)
+  const [payDay, setPayDay] = useState<number>(0)
+  const [zipCode, setZipCode] = useState<string>('')
+  const [deductions, setDeductions] = useState<PaycheckDeductions>({})
 
-  // Check if initial sync is needed
   useEffect(() => {
     const checkSyncStatus = async () => {
       try {
         const response = await fetch('/api/plaid/sync-status')
         const data = await response.json()
-        
-        if (data.success && data.data.allSynced) {
-          // Already synced, skip loader
-          setShowLoader(false)
-        }
-      } catch (err) {
-        console.error('Error checking sync status:', err)
-        // On error, show the dashboard (don't block access)
+        if (data.success && data.data.allSynced) setShowLoader(false)
+      } catch {
         setShowLoader(false)
       } finally {
         setCheckingSync(false)
       }
     }
-    
     checkSyncStatus()
   }, [])
 
-  // Sync hook
-  const { syncing, initialSyncDone, triggerSync } = useSync()
-
-  // Data fetching hook
-  const { accounts, transactions, analytics, loading, error, refetch } = useDashboardData({
-    selectedAccounts: [],
-    dateRange: 'all',
-    timeRange,
-    customStartDate: '',
-    customEndDate: '',
-    initialSyncDone,
+  const [showCustomize, setShowCustomize] = useState(false)
+  const [sections, setSections] = useState<Record<SectionKey, boolean>>({
+    statsGrid: true,
+    anomalies: true,
+    charts: true,
+    topMerchants: true,
+    topCategories: true,
+    streaks: true,
+    debtCalculator: false,
+    accounts: true,
+    recentTransactions: true,
   })
 
-  // Calculate totals
+  const { syncing, initialSyncDone, triggerSync } = useSync()
+  const { accounts, transactions, analytics, loading, error, refetch } = useDashboardData({
+    selectedAccounts: [], dateRange: 'all', timeRange,
+    customStartDate: '', customEndDate: '', initialSyncDone,
+  })
+
+  // Load dashboard section preferences and income
+  useEffect(() => {
+    fetch('/api/user/settings').then(r => r.ok ? r.json() : null).then(d => {
+      const prefs = d?.data?.preferences
+      if (prefs?.dashboardSections) {
+        setSections(prev => ({ ...prev, ...prefs.dashboardSections }))
+      }
+      if (prefs?.monthlyIncome) setMonthlyIncome(prefs.monthlyIncome)
+      if (prefs?.age) setUserAge(prefs.age)
+      if (prefs?.payDay) setPayDay(prefs.payDay)
+      if (d?.data?.zipCode) setZipCode(d.data.zipCode)
+      if (prefs?.deductions) setDeductions(prefs.deductions)
+    }).catch(() => {})
+  }, [])
+
+  // Compute take-home pay from tax estimator + deductions
+  const annualGross = monthlyIncome * 12
+  const taxEstimate = annualGross > 0 && zipCode ? estimateTaxes(annualGross, zipCode) : null
+  const totalDeductions = (deductions.retirement || 0) + (deductions.healthInsurance || 0) + (deductions.hsa || 0) + (deductions.dentalVision || 0) + (deductions.otherPreTax || 0)
+  const takeHomePay = taxEstimate ? taxEstimate.monthlyTakeHome - totalDeductions : 0
+
+  const toggleSection = (key: SectionKey) => {
+    const newVal = !sections[key]
+    setSections(prev => ({ ...prev, [key]: newVal }))
+    fetch('/api/user/settings', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preferences: { dashboardSections: { [key]: newVal } } }),
+    })
+  }
+
   const totalBalance = accounts.reduce((sum, account) => {
     const balance = account.balance ? Number(account.balance) : 0
-    if (account.type === 'credit') {
-      return sum - balance
-    }
-    return sum + balance
+    return account.type === 'credit' ? sum - balance : sum + balance
   }, 0)
+
+  const depositoryTotal = accounts.filter(a => a.type === 'depository').reduce((s, a) => s + (a.balance || 0), 0)
+  const creditTotal = accounts.filter(a => a.type === 'credit').reduce((s, a) => s + (a.balance || 0), 0)
 
   const handleRemoveAccount = async (accountId: string) => {
     try {
-      const response = await fetch(
-        `/api/accounts/disconnect?account_id=${accountId}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        }
-      )
-
-      if (response.ok) {
-        refetch()
-        alert('Account removed successfully')
-      } else {
-        const errorData = await response.json()
-        alert(`Failed to remove account: ${errorData.error}`)
-      }
+      const response = await fetch(`/api/accounts/disconnect?account_id=${accountId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+      if (response.ok) refetch()
     } catch (err) {
       console.error('Error removing account:', err)
-      alert('An error occurred while removing the account')
     }
   }
 
   const getTimeLabel = () => {
-    if (timeRange === 'weekly') return 'This week'
-    if (timeRange === 'monthly') return 'This month'
-    if (timeRange === 'yearly') return 'This year'
-    if (timeRange === 'lastyear') return 'Last year'
-    return 'Custom range'
+    const labels: Record<string, string> = { weekly: 'This week', monthly: 'This month', yearly: 'This year', lastyear: 'Last year' }
+    return labels[timeRange] || 'Custom range'
   }
 
-  // Show initial sync loader if needed
-  if (checkingSync) {
-    return (
-      <div className="bg-white shadow rounded-lg p-6">
-        <p className="text-gray-600">Checking sync status...</p>
-      </div>
-    )
-  }
-
-  if (showLoader) {
-    return <InitialSyncLoader onSyncComplete={() => setShowLoader(false)} />
-  }
-
-  if (loading) {
-    return (
-      <div className="bg-white shadow rounded-lg p-6">
-        <p className="text-gray-600">Loading dashboard data...</p>
-      </div>
-    )
-  }
+  if (checkingSync) return <DashboardSkeleton />
+  if (showLoader) return <InitialSyncLoader onSyncComplete={() => setShowLoader(false)} />
+  if (loading) return <DashboardSkeleton />
 
   if (error) {
     return (
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
-          <p className="text-red-700">Error: {error}</p>
+      <div className="p-6 lg:p-8">
+        <div className="glass-card p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center">
+              <svg className="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-200">Oops, we couldn't fetch your financial chaos</p>
+              <p className="text-xs text-slate-500">{error}</p>
+            </div>
+          </div>
+          <button onClick={refetch} className="btn-primary text-sm">Retry</button>
         </div>
-        <button
-          onClick={refetch}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Retry
-        </button>
       </div>
     )
   }
 
-  // Get recent transactions (last 5)
-  const recentTransactions = transactions.slice(0, 5)
+  const recentTransactions = transactions.slice(0, 8)
+  const topMerchants = analytics?.top_merchants || []
+  const topCategories = analytics?.category_breakdown || []
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6">
-      {/* Main Content */}
-      <div className="flex-1 space-y-6 min-w-0">
-        {/* Accounts Overview */}
-        <AccountsOverview
-          accounts={accounts}
-          totalBalance={totalBalance}
-          syncing={syncing}
-          onSync={() => triggerSync(false)}
-          onRemoveAccount={handleRemoveAccount}
-          formatCurrency={formatCurrency}
-        />
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
+      {/* Sync overlay */}
+      {syncing && <SyncProgressOverlay />}
 
-        {/* Time Range Selector */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-800">Overview - {getTimeLabel()}</h2>
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value)}
-            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="weekly">This Week</option>
-            <option value="monthly">This Month</option>
-            <option value="yearly">This Year</option>
-            <option value="lastyear">Last Year</option>
-          </select>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in-up stagger-1">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-100">Dashboard</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{accounts.length} account{accounts.length !== 1 ? 's' : ''} connected</p>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowCustomize(!showCustomize)}
+            className={`btn-ghost text-xs sm:text-sm flex items-center gap-1.5 border ${
+              showCustomize ? 'border-emerald-500 text-emerald-400' : 'border-slate-700'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+            <span className="hidden sm:inline">Customize</span>
+          </button>
+          <button
+            onClick={() => triggerSync(false)}
+            disabled={syncing}
+            className="btn-primary text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2"
+          >
+            <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {syncing ? 'Syncing...' : 'Sync'}
+          </button>
+        </div>
+      </div>
 
-        {/* Charts */}
-        {analytics && (
-          <DashboardCharts
-            analytics={analytics}
-            timeRange={timeRange}
-            formatCurrency={formatCurrency}
-          />
+      {/* Customize panel */}
+      {showCustomize && (
+        <div className="glass-card p-3 sm:p-4 animate-fade-in-up">
+          <p className="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 sm:mb-3">Toggle sections:</p>
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+            {SECTION_KEYS.map(item => (
+              <button
+                key={item.key}
+                onClick={() => toggleSection(item.key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                  sections[item.key]
+                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
+                    : 'bg-slate-800/50 border-slate-700 text-slate-500'
+                }`}
+              >
+                {sections[item.key] ? '✓' : '○'} {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Stats Overview */}
+      {sections.statsGrid && (
+        <EnhancedStatsGrid
+          totalBalance={totalBalance}
+          depositoryTotal={depositoryTotal}
+          creditTotal={creditTotal}
+          totalSpent={analytics?.total_spent || 0}
+          monthlyIncome={monthlyIncome}
+          takeHomePay={takeHomePay > 0 ? takeHomePay : undefined}
+          effectiveTaxRate={taxEstimate ? taxEstimate.effectiveRate : undefined}
+          transactionCount={transactions.length}
+          daysInMonth={new Date().getDate()}
+          payDay={payDay}
+          userAge={userAge}
+        />
+      )}
+
+      {/* Alerts */}
+      {sections.anomalies && transactions.length > 0 && (
+        <AnomalyAlerts transactions={transactions} accounts={accounts} />
+      )}
+
+      {/* Time Range Header */}
+      <div className="flex items-center justify-between animate-fade-in-up stagger-4">
+        <h2 className="text-base sm:text-lg font-semibold text-slate-200">Overview - {getTimeLabel()}</h2>
+        <select
+          value={timeRange}
+          onChange={(e) => setTimeRange(e.target.value)}
+          className="px-3 py-1.5"
+        >
+          <option value="weekly">This Week</option>
+          <option value="monthly">This Month</option>
+          <option value="yearly">This Year</option>
+          <option value="lastyear">Last Year</option>
+        </select>
+      </div>
+
+      {/* Charts + Spending Activity — Spending Trend left, Activity heatmap right */}
+      {sections.charts && analytics && (
+        <DashboardCharts analytics={analytics} timeRange={timeRange} formatCurrency={formatCurrency} />
+      )}
+
+      {/* Spending Activity heatmap (year view) */}
+      {sections.streaks && (
+        <SpendingStreaks transactions={transactions} accounts={accounts} />
+      )}
+
+      {/* Top Merchants + Top Categories */}
+      {(sections.topMerchants || sections.topCategories) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          {sections.topMerchants && topMerchants.length > 0 && (
+            <div className="glass-card p-4 sm:p-5 animate-fade-in-up">
+              <h3 className="text-xs sm:text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3 sm:mb-4">Top Merchants</h3>
+              <div className="space-y-2">
+                {topMerchants.slice(0, 8).map((merchant: any, i: number) => {
+                  const maxAmount = topMerchants[0]?.amount || 1
+                  const pct = (merchant.amount / maxAmount) * 100
+                  return (
+                    <div key={i} className="group">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="text-xs font-bold text-slate-600">#{i + 1}</span>
+                          <span className="text-sm text-slate-200 truncate">{merchant.name}</span>
+                          <span className="text-xs text-slate-500">{merchant.count}x</span>
+                        </div>
+                        <span className="text-sm font-semibold text-slate-100 ml-2">{formatCurrency(merchant.amount)}</span>
+                      </div>
+                      <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {sections.topCategories && topCategories.length > 0 && (
+            <div className="glass-card p-4 sm:p-5 animate-fade-in-up">
+              <h3 className="text-xs sm:text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3 sm:mb-4">Spending by Category</h3>
+              <div className="space-y-2">
+                {topCategories.slice(0, 8).map((cat: any, i: number) => {
+                  const maxAmount = topCategories[0]?.spent || 1
+                  const pct = (cat.spent / maxAmount) * 100
+                  const colors = ['from-blue-500 to-blue-400', 'from-emerald-500 to-emerald-400', 'from-amber-500 to-amber-400', 'from-rose-500 to-rose-400', 'from-purple-500 to-purple-400', 'from-cyan-500 to-cyan-400', 'from-lime-500 to-lime-400', 'from-pink-500 to-pink-400']
+                  return (
+                    <div key={i} className="group">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="text-xs font-bold text-slate-600">#{i + 1}</span>
+                          <span className="text-sm text-slate-200 truncate">{cat.name}</span>
+                          {cat.count && <span className="text-xs text-slate-500">{cat.count}x</span>}
+                        </div>
+                        <span className="text-sm font-semibold text-slate-100 ml-2">{formatCurrency(cat.spent)}</span>
+                      </div>
+                      <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full bg-gradient-to-r ${colors[i % colors.length]} rounded-full transition-all duration-500`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Accounts + Recent Transactions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {sections.accounts && (
+          <div className="animate-fade-in-up">
+            <AccountsOverview
+              accounts={accounts}
+              totalBalance={totalBalance}
+              syncing={syncing}
+              onSync={() => triggerSync(false)}
+              onRemoveAccount={handleRemoveAccount}
+              formatCurrency={formatCurrency}
+            />
+          </div>
+        )}
+
+        {sections.recentTransactions && (
+          <div className="glass-card p-4 sm:p-5 animate-fade-in-up">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-xs sm:text-sm font-semibold text-slate-300 uppercase tracking-wider">Recent Transactions</h3>
+              <Link href="/dashboard/transactions" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                View all
+              </Link>
+            </div>
+            {recentTransactions.length > 0 ? (
+              <div className="space-y-0.5">
+                {recentTransactions.map((tx: any) => {
+                  const account = accounts.find((a: any) => a.id === tx.account_id)
+                  const isCreditCard = account?.type === 'credit'
+                  const isExpense = isCreditCard ? tx.amount < 0 : tx.amount > 0
+                  return (
+                    <div key={tx.id} className="flex items-center justify-between py-2 px-2 sm:py-2.5 sm:px-3 rounded-lg hover:bg-slate-800/50 transition-colors group">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs sm:text-sm font-medium text-slate-200 truncate group-hover:text-slate-100">{tx.name}</p>
+                        <p className="text-[10px] sm:text-xs text-slate-500">{formatDate(tx.date)}</p>
+                      </div>
+                      <span className={`text-sm font-semibold ml-3 tabular-nums ${isExpense ? 'text-slate-300' : 'text-emerald-400'}`}>
+                        {isExpense ? '-' : '+'}{formatCurrency(Math.abs(tx.amount))}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500 py-4 text-center">No transactions yet.</p>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Sidebar */}
-      <div className="w-full lg:w-80 flex-shrink-0 space-y-6">
-        {/* Quick Actions */}
-        <div className="bg-white shadow rounded-lg p-5">
-          <h3 className="text-base font-semibold text-gray-800 mb-4">Quick Actions</h3>
-          <div className="space-y-2">
-            <Link
-              href="/dashboard/analytics"
-              className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-            >
-              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span className="text-sm font-medium text-blue-700">View Analytics</span>
-            </Link>
-            <Link
-              href="/dashboard/transactions"
-              className="flex items-center gap-3 p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
-            >
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              <span className="text-sm font-medium text-green-700">All Transactions</span>
-            </Link>
-            <Link
-              href="/dashboard/rates"
-              className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
-            >
-              <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-sm font-medium text-amber-700">Interest Rates</span>
-            </Link>
-            <Link
-              href="/dashboard/settings"
-              className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span className="text-sm font-medium text-gray-700">Settings</span>
-            </Link>
-            <button
-              onClick={() => triggerSync(false)}
-              disabled={syncing}
-              className="w-full flex items-center gap-3 p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
-            >
-              <svg className={`w-5 h-5 text-purple-600 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <span className="text-sm font-medium text-purple-700">{syncing ? 'Syncing...' : 'Sync Now'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Recent Transactions */}
-        <div className="bg-white shadow rounded-lg p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-semibold text-gray-800">Recent Transactions</h3>
-            <Link 
-              href="/dashboard/transactions" 
-              className="text-sm text-blue-600 hover:text-blue-700"
-            >
-              View all →
-            </Link>
-          </div>
-          {recentTransactions.length > 0 ? (
-            <div className="space-y-3">
-              {recentTransactions.map((tx: any) => {
-                // Find account type for this transaction
-                const account = accounts.find((a: any) => a.id === tx.account_id)
-                const isCreditCard = account?.type === 'credit'
-                // For depository: positive = expense (red), negative = income (green)
-                // For credit: negative = expense (red), positive = payment (green)
-                const isExpense = isCreditCard ? tx.amount < 0 : tx.amount > 0
-                
-                return (
-                  <div key={tx._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900 truncate">{tx.name}</p>
-                      <p className="text-xs text-gray-500">{formatDate(tx.date)}</p>
-                    </div>
-                    <span className={`text-sm font-semibold ml-2 ${isExpense ? 'text-gray-900' : 'text-green-600'}`}>
-                      {isExpense ? '-' : '+'}{formatCurrency(Math.abs(tx.amount))}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">No recent transactions</p>
-          )}
-        </div>
-      </div>
+      {/* Debt Payoff Calculator */}
+      {sections.debtCalculator && (
+        <DebtPayoffCalculator 
+          totalDebt={creditTotal} 
+          monthlySpending={analytics?.total_spent || 0}
+          monthlyIncome={monthlyIncome}
+          userAge={userAge}
+        />
+      )}
     </div>
   )
 }

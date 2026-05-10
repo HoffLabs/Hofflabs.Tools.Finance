@@ -9,6 +9,14 @@ import { calculateSimilarity } from './merchantNormalizer'
 
 // Default categories with their associated keywords
 export const CATEGORY_RULES: Record<string, string[]> = {
+  // Credit Card Payments MUST be checked first — these patterns appear in many
+  // transaction names that would otherwise false-match other categories.
+  'Credit Card Payments': [
+    'mobile payment - thank', 'mobile payment', 'credit card payment',
+    'card payment', 'autopay payment', 'online payment', 'payment thank you',
+    'payment received', 'web payment', 'automatic payment', 'payment - thank',
+    'internet payment', 'recurring payment', 'epayment', 'bill pay',
+  ],
   'Housing': [
     'mortgage', 'rent', 'hoa', 'property', 'real estate', 'apartment',
     'lease', 'housing', 'cmg mortgage', 'quicken loans', 'rocket mortgage',
@@ -35,9 +43,9 @@ export const CATEGORY_RULES: Record<string, string[]> = {
   ],
   'Transportation': [
     'gas station', 'fuel', 'shell', 'chevron', 'exxon', 'bp',
-    'mobil', 'speedway', 'wawa', 'quiktrip', 'uber', 'lyft',
-    'taxi', 'parking', 'toll', 'transit', 'metro', 'bus', 'train',
-    'amtrak', 'airline', 'flight', 'car wash', 'auto',
+    'exxonmobil', 'mobil gas', 'speedway', 'wawa', 'quiktrip',
+    'uber', 'lyft', 'taxi', 'parking', 'toll', 'transit', 'metro',
+    'bus', 'train', 'amtrak', 'airline', 'flight', 'car wash', 'auto',
   ],
   'Shopping': [
     'amazon', 'ebay', 'etsy', 'shop', 'store', 'mall', 'outlet',
@@ -91,15 +99,21 @@ export const CATEGORY_RULES: Record<string, string[]> = {
   ],
   'Transfer': [
     'transfer', 'zelle', 'venmo', 'paypal', 'cash app', 'wire',
-    'ach', 'direct deposit',
+    'ach', 'adj redist', 'adjustment', 'internal transfer',
+    'online transfer', 'funds transfer', 'account transfer',
   ],
-  'Credit Card Payments': [
-    'credit card payment', 'card payment', 'autopay payment',
-    'online payment', 'payment thank you', 'payment received',
-    'mobile payment', 'web payment', 'automatic payment',
+  'Loan Payment': [
+    'loan', 'auto loan', 'car loan', 'car payment', 'vehicle payment',
+    'student loan', 'personal loan', 'mortgage payment', 'loan payment',
+    'loan pmt', 'auto pmt', 'navient', 'nelnet', 'great lakes',
+    'sallie mae', 'sofi', 'upstart', 'lending club', 'prosper',
+    'capital one auto', 'ally auto', 'chase auto', 'wells fargo auto',
+    'toyota financial', 'honda financial', 'ford credit', 'gm financial',
+    'bmw financial', 'mercedes financial', 'vw credit', 'hyundai capital',
   ],
   'Income': [
-    'payroll', 'salary', 'deposit', 'direct dep', 'paycheck',
+    'payroll', 'salary', 'direct deposit', 'direct dep', 'paycheck',
+    'employer', 'wages', 'income', 'bonus', 'commission',
   ],
 }
 

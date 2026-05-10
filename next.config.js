@@ -1,9 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   images: {
-    domains: ['cdn.plaid.com']
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn.plaid.com',
+      },
+    ],
   },
   async headers() {
     return [
@@ -25,6 +29,14 @@ const nextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin'
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload'
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http:; font-src 'self'; connect-src 'self' https://*.plaid.com; frame-src 'self' https://cdn.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'"
           }
         ]
       }

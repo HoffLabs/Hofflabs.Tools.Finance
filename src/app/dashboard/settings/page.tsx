@@ -1,6 +1,5 @@
 import { getCurrentUserId } from '@/lib/auth/utils'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 
 // Client component for settings
 import SettingsClient from './SettingsClient'
@@ -13,22 +12,21 @@ export default async function SettingsPage() {
   }
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="py-8">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Account Settings</h1>
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Back to Dashboard
-            </Link>
+    <div className="w-full p-6 lg:p-8 xl:p-10">
+      <div className="w-full">
+        <div className="mb-8 animate-fade-in-up">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-100">Settings</h1>
+              <p className="text-sm text-slate-500 mt-1">Manage your account, connected banks, and preferences.</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-slate-600 uppercase tracking-wider">Account ID</p>
+              <p className="text-xs text-slate-400 font-mono">{userId}</p>
+            </div>
           </div>
-          
-          {/* Client component that will handle settings */}
-          <SettingsClient userId={userId} />
         </div>
+        <SettingsClient userId={userId} />
       </div>
     </div>
   )

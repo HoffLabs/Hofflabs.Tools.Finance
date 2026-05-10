@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useRef, ReactNode } from 'react'
 
@@ -84,19 +84,19 @@ export default function Modal({
       <div
         ref={modalRef}
         tabIndex={-1}
-        className={`${sizeClasses[size]} w-full bg-white rounded-lg shadow-xl transform transition-all`}
+        className={`${sizeClasses[size]} w-full glass-card-xl transform transition-all`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
           <h2
             id="modal-title"
-            className="text-lg font-semibold text-gray-900"
+            className="text-lg font-semibold text-slate-100"
           >
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+            className="p-1 text-slate-500 hover:text-slate-400 rounded-full hover:bg-slate-800 transition-colors"
             aria-label="Close modal"
           >
             <svg

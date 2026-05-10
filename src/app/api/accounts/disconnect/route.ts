@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
 import { getCurrentUserId } from '@/lib/auth/utils'
-import { getBankAccountsCollection, getTransactionsCollection } from '@/lib/db/client'
+import { getDb } from '@/lib/db/client'
+import type { BankAccount } from '@/lib/db/types'
 
 export async function POST(request: Request) {
   try {
@@ -14,7 +14,6 @@ export async function POST(request: Request) {
       )
     }
      
-    // Get accountId from query parameters instead of request body
     const { searchParams } = new URL(request.url)
     const accountId = searchParams.get('account_id')
      
@@ -25,14 +24,11 @@ export async function POST(request: Request) {
       )
     }
     
-    const bankAccounts = await getBankAccountsCollection()
-    const transactions = await getTransactionsCollection()
+    const db = await getDb()
     
-    // Verify the account belongs to the user
-    const account = await bankAccounts.findOne({
-      _id: new ObjectId(accountId),
-      user_id: new ObjectId(userId),
-    })
+    const account = await db.prepare(
+      'SELECT id FROM bank_accounts WHERE id = ? AND user_id = ?'
+    ).bind(accountId, userId).first<BankAccount>()
     
     if (!account) {
       return NextResponse.json(
@@ -41,9 +37,9 @@ export async function POST(request: Request) {
       )
     }
     
-    // Delete the account and all associated transactions
-    await transactions.deleteMany({ account_id: new ObjectId(accountId) })
-    await bankAccounts.deleteOne({ _id: new ObjectId(accountId) })
+    // Delete transactions first (FK constraint), then account
+    await db.prepare('DELETE FROM transactions WHERE account_id = ?').bind(accountId).run()
+    await db.prepare('DELETE FROM bank_accounts WHERE id = ?').bind(accountId).run()
     
     return NextResponse.json(
       { success: true, message: 'Account disconnected successfully' },
@@ -52,7 +48,6 @@ export async function POST(request: Request) {
     
   } catch (error) {
     console.error('Disconnect account error:', error)
-    
     return NextResponse.json(
       { success: false, error: 'Failed to disconnect account' },
       { status: 500 }

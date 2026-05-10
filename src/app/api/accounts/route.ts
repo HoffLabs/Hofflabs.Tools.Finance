@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
 import { getCurrentUserId } from '@/lib/auth/utils'
-import { getBankAccountsCollection } from '@/lib/db/client'
+import { getDb } from '@/lib/db/client'
+import type { BankAccount } from '@/lib/db/types'
 
 export async function GET() {
   try {
@@ -14,28 +14,13 @@ export async function GET() {
       )
     }
     
-    const bankAccounts = await getBankAccountsCollection()
+    const db = await getDb()
+    const accounts = await db.prepare(
+      'SELECT id, name, type, subtype, mask, balance, available_balance, currency FROM bank_accounts WHERE user_id = ?'
+    ).bind(userId).all<BankAccount>()
     
-    // Get all bank accounts for the user with balances
-    const accounts = await bankAccounts.find(
-      { user_id: new ObjectId(userId) },
-      {
-        projection: {
-          _id: 1,
-          name: 1,
-          type: 1,
-          subtype: 1,
-          mask: 1,
-          balance: 1,
-          available_balance: 1,
-          currency: 1,
-        },
-      }
-    ).toArray()
-    
-    // Transform _id to id for frontend compatibility
-    const transformedAccounts = accounts.map(acc => ({
-      id: acc._id.toString(),
+    const transformedAccounts = accounts.results.map((acc: BankAccount) => ({
+      id: acc.id,
       name: acc.name,
       type: acc.type,
       subtype: acc.subtype,
@@ -45,11 +30,8 @@ export async function GET() {
       currency: acc.currency,
     }))
     
-    // Calculate total balance across all accounts
-    // Credit cards are debt, so their balances should be subtracted
-    const totalBalance = transformedAccounts.reduce((sum: number, account: any) => {
+    const totalBalance = transformedAccounts.reduce((sum: number, account: typeof transformedAccounts[0]) => {
       const balance = account.balance ? Number(account.balance) : 0
-      // For credit accounts, subtract the balance (it's money owed)
       if (account.type === 'credit') {
         return sum - balance
       }
@@ -70,7 +52,6 @@ export async function GET() {
     
   } catch (error) {
     console.error('Error getting accounts:', error)
-    
     return NextResponse.json(
       { success: false, error: 'Failed to get accounts' },
       { status: 500 }

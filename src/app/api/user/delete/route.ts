@@ -1,13 +1,7 @@
 import { NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
 import { getCurrentUserId } from '@/lib/auth/utils'
-import {
-  getUsersCollection,
-  getBankAccountsCollection,
-  getTransactionsCollection,
-  getSyncLogsCollection,
-  getSessionsCollection,
-} from '@/lib/db/client'
+import { getDb, sqlPlaceholders } from '@/lib/db/client'
+import type { BankAccount } from '@/lib/db/types'
 
 export async function DELETE() {
   try {
@@ -20,38 +14,28 @@ export async function DELETE() {
       )
     }
     
-    const userObjectId = new ObjectId(userId)
+    const db = await getDb()
     
-    const users = await getUsersCollection()
-    const bankAccounts = await getBankAccountsCollection()
-    const transactions = await getTransactionsCollection()
-    const syncLogs = await getSyncLogsCollection()
-    const sessions = await getSessionsCollection()
+    // Get user's bank account IDs
+    const userAccounts = await db.prepare(
+      'SELECT id FROM bank_accounts WHERE user_id = ?'
+    ).bind(userId).all<BankAccount>()
+    const accountIds = userAccounts.results.map((acc: any) => acc.id)
     
-    // Get user's bank account IDs first
-    const userAccounts = await bankAccounts.find(
-      { user_id: userObjectId },
-      { projection: { _id: 1 } }
-    ).toArray()
-    const accountIds = userAccounts.map(acc => acc._id)
-    
-    // Delete all user data
     // Delete all transactions for user's accounts
     if (accountIds.length > 0) {
-      await transactions.deleteMany({ account_id: { $in: accountIds } })
+      await db.prepare(
+        `DELETE FROM transactions WHERE account_id IN (${sqlPlaceholders(accountIds.length)})`
+      ).bind(...accountIds).run()
     }
     
-    // Delete all bank accounts
-    await bankAccounts.deleteMany({ user_id: userObjectId })
-    
-    // Delete all sync logs
-    await syncLogs.deleteMany({ user_id: userObjectId })
-    
-    // Delete all sessions
-    await sessions.deleteMany({ user_id: userObjectId })
-    
-    // Delete the user
-    await users.deleteOne({ _id: userObjectId })
+    // Delete related data (order matters for FK constraints)
+    await db.prepare('DELETE FROM bank_accounts WHERE user_id = ?').bind(userId).run()
+    await db.prepare('DELETE FROM sync_logs WHERE user_id = ?').bind(userId).run()
+    await db.prepare('DELETE FROM merchant_categories WHERE user_id = ?').bind(userId).run()
+    await db.prepare('DELETE FROM ai_summaries WHERE user_id = ?').bind(userId).run()
+    await db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run()
+    await db.prepare('DELETE FROM users WHERE id = ?').bind(userId).run()
     
     return NextResponse.json(
       { success: true, message: 'Account deleted successfully' },
@@ -60,7 +44,6 @@ export async function DELETE() {
     
   } catch (error) {
     console.error('Error deleting account:', error)
-    
     return NextResponse.json(
       { success: false, error: 'Failed to delete account' },
       { status: 500 }

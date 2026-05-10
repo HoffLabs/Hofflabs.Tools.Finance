@@ -14,8 +14,12 @@ build/
 # Production
 dist/
 
-# Environment files (NEVER commit these)
-.env
+# Cloudflare / OpenNext build output
+.open-next/
+.wrangler/
+
+# Secrets (NEVER commit these)
+.dev.vars
 .env.local
 .env.development.local
 .env.test.local
@@ -45,7 +49,7 @@ Thumbs.db
 *.pem
 *.log
 
-# Database files (if using SQLite locally)
+# Database files (local D1 SQLite)
 *.db
 *.sqlite
 *.sqlite3
@@ -55,3 +59,6 @@ prisma/*.db
 test_*.js
 test-*.js
 *.test.js
+
+# LiteLLM secrets
+litellm/.env

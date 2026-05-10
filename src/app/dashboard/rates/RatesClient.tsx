@@ -147,19 +147,19 @@ export default function RatesClient() {
     switch (type) {
       case 'bank':
         return (
-          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
           </svg>
         )
       case 'credit_union':
         return (
-          <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
         )
       case 'online':
         return (
-          <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
           </svg>
         )
@@ -177,34 +177,32 @@ export default function RatesClient() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="py-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">Interest Rates</h1>
+    <div className="p-6 lg:p-8 space-y-6 animate-fade-in-up">
+      <h1 className="text-2xl font-bold text-slate-100">Interest Rates</h1>
 
           {/* Federal Reserve Rates */}
-          <div className="bg-white shadow rounded-lg p-6 mb-6">
+          <div className="glass-card p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-800">Federal Reserve & Market Rates</h2>
+              <h2 className="text-xl font-semibold text-slate-200">Federal Reserve & Market Rates</h2>
               {federalSource && (
-                <span className="text-sm text-gray-500">Source: {federalSource}</span>
+                <span className="text-sm text-slate-500">Source: {federalSource}</span>
               )}
             </div>
 
             {loadingFederal ? (
-              <p className="text-gray-600">Loading federal rates...</p>
+              <p className="text-slate-400">Loading federal rates...</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {federalRates.map((rate) => (
                   <div
                     key={rate.id}
-                    className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-blue-300 transition-colors"
+                    className="bg-slate-950 rounded-lg p-4 border border-slate-700 hover:border-emerald-500/50 transition-colors"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-medium text-gray-700">{rate.name}</h3>
+                      <h3 className="text-sm font-medium text-slate-300">{rate.name}</h3>
                     </div>
-                    <p className="text-2xl font-bold text-blue-600">{formatRate(rate.rate)}</p>
-                    <p className="text-xs text-gray-500 mt-1">{rate.description}</p>
+                    <p className="text-2xl font-bold text-emerald-400">{formatRate(rate.rate)}</p>
+                    <p className="text-xs text-slate-500 mt-1">{rate.description}</p>
                   </div>
                 ))}
               </div>
@@ -212,14 +210,14 @@ export default function RatesClient() {
           </div>
 
           {/* Local Rates Lookup */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Local Lender Rates</h2>
+          <div className="glass-card p-6">
+            <h2 className="text-xl font-semibold text-slate-200 mb-4">Local Lender Rates</h2>
 
             {/* Zip Code Input */}
             <form onSubmit={handleZipCodeSubmit} className="mb-6">
               <div className="flex items-end gap-4">
                 <div className="flex-1 max-w-xs">
-                  <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="zipCode" className="block text-sm font-medium text-slate-300 mb-1">
                     Enter ZIP Code
                   </label>
                   <input
@@ -228,20 +226,20 @@ export default function RatesClient() {
                     value={zipCode}
                     onChange={(e) => setZipCode(e.target.value.replace(/\D/g, '').slice(0, 5))}
                     placeholder="e.g. 90210"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-md text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
                     maxLength={5}
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={zipCode.length !== 5 || loadingLocal}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md  text-white bg-emerald-600 hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:bg-slate-700 disabled:cursor-not-allowed"
                 >
                   {loadingLocal ? 'Loading...' : 'Search Rates'}
                 </button>
               </div>
               {savedZipCode && savedZipCode !== zipCode && (
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-sm text-slate-500 mt-2">
                   Your saved ZIP code: {savedZipCode}{' '}
                   <button
                     type="button"
@@ -249,7 +247,7 @@ export default function RatesClient() {
                       setZipCode(savedZipCode)
                       fetchLocalRates(savedZipCode)
                     }}
-                    className="text-blue-600 hover:text-blue-800 underline"
+                    className="text-emerald-400 hover:text-emerald-300 underline"
                   >
                     Use this
                   </button>
@@ -258,8 +256,8 @@ export default function RatesClient() {
             </form>
 
             {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
-                <p className="text-red-700">{error}</p>
+              <div className="bg-rose-500/10 border-l-4 border-rose-500/30 p-4 mb-4">
+                <p className="text-rose-400">{error}</p>
               </div>
             )}
 
@@ -267,15 +265,15 @@ export default function RatesClient() {
               <>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-slate-300">
                       Showing rates for {localRates.zipCode}
                     </span>
-                    <span className="text-sm text-gray-500 ml-2">({localRates.region})</span>
+                    <span className="text-sm text-slate-500 ml-2">({localRates.region})</span>
                   </div>
                 </div>
 
                 {/* Category Tabs */}
-                <div className="border-b border-gray-200 mb-4">
+                <div className="border-b border-slate-700 mb-4">
                   <nav className="-mb-px flex space-x-8 overflow-x-auto">
                     {categoryTabs.map((tab) => (
                       <button
@@ -283,8 +281,8 @@ export default function RatesClient() {
                         onClick={() => setActiveCategory(tab.id)}
                         className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
                           activeCategory === tab.id
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            ? 'border-emerald-500 text-emerald-400'
+                            : 'border-transparent text-slate-500 hover:text-slate-300 hover:border-slate-700'
                         }`}
                       >
                         {tab.label}
@@ -297,34 +295,34 @@ export default function RatesClient() {
                 {activeCategory === 'mortgage' && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-3">30-Year Fixed Mortgage</h3>
+                      <h3 className="text-lg font-medium text-slate-100 mb-3">30-Year Fixed Mortgage</h3>
                       <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
+                        <table className="min-w-full divide-y divide-slate-800">
+                          <thead className="bg-slate-950">
                             <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lender</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">APR</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min. Credit Score</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Lender</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Rate</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">APR</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Min. Credit Score</th>
                             </tr>
                           </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
+                          <tbody className="bg-slate-900 divide-y divide-slate-800">
                             {localRates.mortgageRates.thirtyYear.map((rate, idx) => (
-                              <tr key={idx} className={idx === 0 ? 'bg-green-50' : ''}>
+                              <tr key={idx} className={idx === 0 ? 'bg-emerald-500/10' : ''}>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   <div className="flex items-center gap-2">
                                     {getLenderIcon(rate.lender.type)}
-                                    <span className="text-sm font-medium text-gray-900">{rate.lender.name}</span>
+                                    <span className="text-sm font-medium text-slate-100">{rate.lender.name}</span>
                                     {idx === 0 && (
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/20 text-emerald-400">
                                         Best Rate
                                       </span>
                                     )}
                                   </div>
                                 </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">{formatRate(rate.rate)}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{formatRate(rate.apr)}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{rate.minCreditScore}+</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-slate-100">{formatRate(rate.rate)}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">{formatRate(rate.apr)}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">{rate.minCreditScore}+</td>
                               </tr>
                             ))}
                           </tbody>
@@ -333,34 +331,34 @@ export default function RatesClient() {
                     </div>
 
                     <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-3">15-Year Fixed Mortgage</h3>
+                      <h3 className="text-lg font-medium text-slate-100 mb-3">15-Year Fixed Mortgage</h3>
                       <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
+                        <table className="min-w-full divide-y divide-slate-800">
+                          <thead className="bg-slate-950">
                             <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lender</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">APR</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min. Credit Score</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Lender</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Rate</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">APR</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Min. Credit Score</th>
                             </tr>
                           </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
+                          <tbody className="bg-slate-900 divide-y divide-slate-800">
                             {localRates.mortgageRates.fifteenYear.map((rate, idx) => (
-                              <tr key={idx} className={idx === 0 ? 'bg-green-50' : ''}>
+                              <tr key={idx} className={idx === 0 ? 'bg-emerald-500/10' : ''}>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   <div className="flex items-center gap-2">
                                     {getLenderIcon(rate.lender.type)}
-                                    <span className="text-sm font-medium text-gray-900">{rate.lender.name}</span>
+                                    <span className="text-sm font-medium text-slate-100">{rate.lender.name}</span>
                                     {idx === 0 && (
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/20 text-emerald-400">
                                         Best Rate
                                       </span>
                                     )}
                                   </div>
                                 </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">{formatRate(rate.rate)}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{formatRate(rate.apr)}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{rate.minCreditScore}+</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-slate-100">{formatRate(rate.rate)}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">{formatRate(rate.apr)}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">{rate.minCreditScore}+</td>
                               </tr>
                             ))}
                           </tbody>
@@ -374,34 +372,34 @@ export default function RatesClient() {
                 {activeCategory === 'auto' && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-3">New Car Loans (60 months)</h3>
+                      <h3 className="text-lg font-medium text-slate-100 mb-3">New Car Loans (60 months)</h3>
                       <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
+                        <table className="min-w-full divide-y divide-slate-800">
+                          <thead className="bg-slate-950">
                             <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lender</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">APR</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min. Credit Score</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Lender</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Rate</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">APR</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Min. Credit Score</th>
                             </tr>
                           </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
+                          <tbody className="bg-slate-900 divide-y divide-slate-800">
                             {localRates.autoLoanRates.newCar.map((rate, idx) => (
-                              <tr key={idx} className={idx === 0 ? 'bg-green-50' : ''}>
+                              <tr key={idx} className={idx === 0 ? 'bg-emerald-500/10' : ''}>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   <div className="flex items-center gap-2">
                                     {getLenderIcon(rate.lender.type)}
-                                    <span className="text-sm font-medium text-gray-900">{rate.lender.name}</span>
+                                    <span className="text-sm font-medium text-slate-100">{rate.lender.name}</span>
                                     {idx === 0 && (
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/20 text-emerald-400">
                                         Best Rate
                                       </span>
                                     )}
                                   </div>
                                 </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">{formatRate(rate.rate)}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{formatRate(rate.apr)}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{rate.minCreditScore}+</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-slate-100">{formatRate(rate.rate)}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">{formatRate(rate.apr)}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">{rate.minCreditScore}+</td>
                               </tr>
                             ))}
                           </tbody>
@@ -410,34 +408,34 @@ export default function RatesClient() {
                     </div>
 
                     <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-3">Used Car Loans (48 months)</h3>
+                      <h3 className="text-lg font-medium text-slate-100 mb-3">Used Car Loans (48 months)</h3>
                       <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
+                        <table className="min-w-full divide-y divide-slate-800">
+                          <thead className="bg-slate-950">
                             <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lender</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">APR</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min. Credit Score</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Lender</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Rate</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">APR</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Min. Credit Score</th>
                             </tr>
                           </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
+                          <tbody className="bg-slate-900 divide-y divide-slate-800">
                             {localRates.autoLoanRates.usedCar.map((rate, idx) => (
-                              <tr key={idx} className={idx === 0 ? 'bg-green-50' : ''}>
+                              <tr key={idx} className={idx === 0 ? 'bg-emerald-500/10' : ''}>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   <div className="flex items-center gap-2">
                                     {getLenderIcon(rate.lender.type)}
-                                    <span className="text-sm font-medium text-gray-900">{rate.lender.name}</span>
+                                    <span className="text-sm font-medium text-slate-100">{rate.lender.name}</span>
                                     {idx === 0 && (
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/20 text-emerald-400">
                                         Best Rate
                                       </span>
                                     )}
                                   </div>
                                 </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">{formatRate(rate.rate)}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{formatRate(rate.apr)}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{rate.minCreditScore}+</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-slate-100">{formatRate(rate.rate)}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">{formatRate(rate.apr)}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">{rate.minCreditScore}+</td>
                               </tr>
                             ))}
                           </tbody>
@@ -450,34 +448,34 @@ export default function RatesClient() {
                 {/* Personal Loan Rates */}
                 {activeCategory === 'personal' && (
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-3">Personal Loans (36 months)</h3>
+                    <h3 className="text-lg font-medium text-slate-100 mb-3">Personal Loans (36 months)</h3>
                     <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                      <table className="min-w-full divide-y divide-slate-800">
+                        <thead className="bg-slate-950">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lender</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">APR</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min. Credit Score</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Lender</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Rate</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">APR</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Min. Credit Score</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-slate-900 divide-y divide-slate-800">
                           {localRates.personalLoanRates.map((rate, idx) => (
-                            <tr key={idx} className={idx === 0 ? 'bg-green-50' : ''}>
+                            <tr key={idx} className={idx === 0 ? 'bg-emerald-500/10' : ''}>
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
                                   {getLenderIcon(rate.lender.type)}
-                                  <span className="text-sm font-medium text-gray-900">{rate.lender.name}</span>
+                                  <span className="text-sm font-medium text-slate-100">{rate.lender.name}</span>
                                   {idx === 0 && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/20 text-emerald-400">
                                       Best Rate
                                     </span>
                                   )}
                                 </div>
                               </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">{formatRate(rate.rate)}</td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{formatRate(rate.apr)}</td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{rate.minCreditScore}+</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-slate-100">{formatRate(rate.rate)}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">{formatRate(rate.apr)}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">{rate.minCreditScore}+</td>
                             </tr>
                           ))}
                         </tbody>
@@ -489,32 +487,32 @@ export default function RatesClient() {
                 {/* Savings Rates */}
                 {activeCategory === 'savings' && (
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-3">High-Yield Savings Accounts</h3>
+                    <h3 className="text-lg font-medium text-slate-100 mb-3">High-Yield Savings Accounts</h3>
                     <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                      <table className="min-w-full divide-y divide-slate-800">
+                        <thead className="bg-slate-950">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lender</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">APY</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min. Deposit</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Lender</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">APY</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Min. Deposit</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-slate-900 divide-y divide-slate-800">
                           {localRates.savingsRates.map((rate, idx) => (
-                            <tr key={idx} className={idx === 0 ? 'bg-green-50' : ''}>
+                            <tr key={idx} className={idx === 0 ? 'bg-emerald-500/10' : ''}>
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
                                   {getLenderIcon(rate.lender.type)}
-                                  <span className="text-sm font-medium text-gray-900">{rate.lender.name}</span>
+                                  <span className="text-sm font-medium text-slate-100">{rate.lender.name}</span>
                                   {idx === 0 && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/20 text-emerald-400">
                                       Best APY
                                     </span>
                                   )}
                                 </div>
                               </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-green-600">{formatRate(rate.apy)}</td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-emerald-400">{formatRate(rate.apy)}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
                                 {rate.minDeposit === 0 ? 'No minimum' : formatCurrency(rate.minDeposit)}
                               </td>
                             </tr>
@@ -528,34 +526,34 @@ export default function RatesClient() {
                 {/* CD Rates */}
                 {activeCategory === 'cd' && (
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-3">Certificate of Deposit (CD) Rates</h3>
+                    <h3 className="text-lg font-medium text-slate-100 mb-3">Certificate of Deposit (CD) Rates</h3>
                     <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                      <table className="min-w-full divide-y divide-slate-800">
+                        <thead className="bg-slate-950">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lender</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Term</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">APY</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min. Deposit</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Lender</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Term</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">APY</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Min. Deposit</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-slate-900 divide-y divide-slate-800">
                           {localRates.cdRates.map((rate, idx) => (
-                            <tr key={idx} className={idx === 0 ? 'bg-green-50' : ''}>
+                            <tr key={idx} className={idx === 0 ? 'bg-emerald-500/10' : ''}>
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
                                   {getLenderIcon(rate.lender.type)}
-                                  <span className="text-sm font-medium text-gray-900">{rate.lender.name}</span>
+                                  <span className="text-sm font-medium text-slate-100">{rate.lender.name}</span>
                                   {idx === 0 && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/20 text-emerald-400">
                                       Best APY
                                     </span>
                                   )}
                                 </div>
                               </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{rate.term}</td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-green-600">{formatRate(rate.apy)}</td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{formatCurrency(rate.minDeposit)}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-100">{rate.term}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-emerald-400">{formatRate(rate.apy)}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">{formatCurrency(rate.minDeposit)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -565,19 +563,19 @@ export default function RatesClient() {
                 )}
 
                 {/* Disclaimer */}
-                <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm text-yellow-800">{localRates.disclaimer}</p>
+                <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                  <p className="text-sm text-amber-400">{localRates.disclaimer}</p>
                 </div>
               </>
             )}
 
             {!localRates && !loadingLocal && (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-slate-500">
                 <p>Enter a ZIP code above to see local lender rates in your area.</p>
                 {savedZipCode && (
                   <button
                     onClick={() => fetchLocalRates(savedZipCode)}
-                    className="mt-2 text-blue-600 hover:text-blue-800 underline"
+                    className="mt-2 text-emerald-400 hover:text-emerald-300 underline"
                   >
                     Use your saved ZIP code ({savedZipCode})
                   </button>
@@ -585,8 +583,6 @@ export default function RatesClient() {
               </div>
             )}
           </div>
-        </div>
-      </div>
     </div>
   )
 }

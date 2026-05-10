@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 
 export function useSync(onSyncComplete?: () => void) {
   const [syncing, setSyncing] = useState(false)

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
 import { getCurrentUserId } from '@/lib/auth/utils'
-import { getUsersCollection } from '@/lib/db/client'
+import { getDb } from '@/lib/db/client'
 import crypto from 'crypto'
+import type { User } from '@/lib/db/types'
 
 export async function POST() {
   try {
@@ -15,15 +15,12 @@ export async function POST() {
       )
     }
     
-    // Generate a new secret for the user
     const secret = crypto.randomBytes(20).toString('hex')
     
-    // Get the user's email (or username) for the QR code
-    const users = await getUsersCollection()
-    const user = await users.findOne(
-      { _id: new ObjectId(userId) },
-      { projection: { username: 1 } }
-    )
+    const db = await getDb()
+    const user = await db.prepare(
+      'SELECT username FROM users WHERE id = ?'
+    ).bind(userId).first<User>()
     
     if (!user) {
       return NextResponse.json(
@@ -32,22 +29,15 @@ export async function POST() {
       )
     }
     
-    // For simplicity, we'll return a mock QR code URL
-    // In a real application, you would generate a proper QR code
     const qrCode = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=otpauth://totp/FinanceMonitor:${user.username}?secret=${secret}&issuer=FinanceMonitor`
     
     return NextResponse.json(
-      {
-        success: true,
-        secret,
-        qrCode,
-      },
+      { success: true, secret, qrCode },
       { status: 200 }
     )
     
   } catch (error) {
     console.error('Error setting up 2FA:', error)
-    
     return NextResponse.json(
       { success: false, error: 'Failed to setup 2FA' },
       { status: 500 }

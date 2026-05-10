@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
 import { getCurrentUserId } from '@/lib/auth/utils'
-import { getMerchantCategoriesCollection } from '@/lib/db/client'
+import { getDb, generateId, now } from '@/lib/db/client'
+import type { MerchantCategory } from '@/lib/db/types'
 
-// GET - Fetch all merchant category overrides for the user
 export async function GET() {
   try {
     const userId = await getCurrentUserId()
@@ -15,16 +14,15 @@ export async function GET() {
       )
     }
     
-    const collection = await getMerchantCategoriesCollection()
-    
-    const categories = await collection
-      .find({ user_id: new ObjectId(userId) })
-      .toArray()
+    const db = await getDb()
+    const categories = await db.prepare(
+      'SELECT id, merchant_name, category FROM merchant_categories WHERE user_id = ?'
+    ).bind(userId).all<MerchantCategory>()
     
     return NextResponse.json({
       success: true,
-      data: categories.map(c => ({
-        id: c._id?.toString(),
+      data: categories.results.map((c: any) => ({
+        id: c.id,
         merchant_name: c.merchant_name,
         category: c.category,
       })),
@@ -38,7 +36,6 @@ export async function GET() {
   }
 }
 
-// POST - Create or update a merchant category override
 export async function POST(request: Request) {
   try {
     const userId = await getCurrentUserId()
@@ -60,40 +57,26 @@ export async function POST(request: Request) {
       )
     }
     
-    const collection = await getMerchantCategoriesCollection()
+    const db = await getDb()
     const normalizedName = merchant_name.toLowerCase().trim()
-    const now = new Date()
+    const timestamp = now()
+    const id = generateId()
     
-    // Upsert - update if exists, insert if not
-    const result = await collection.findOneAndUpdate(
-      {
-        user_id: new ObjectId(userId),
-        merchant_name: normalizedName,
-      },
-      {
-        $set: {
-          category,
-          updated_at: now,
-        },
-        $setOnInsert: {
-          user_id: new ObjectId(userId),
-          merchant_name: normalizedName,
-          created_at: now,
-        },
-      },
-      {
-        upsert: true,
-        returnDocument: 'after',
-      }
-    )
+    // Upsert via INSERT ... ON CONFLICT
+    await db.prepare(
+      `INSERT INTO merchant_categories (id, user_id, merchant_name, category, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(user_id, merchant_name) DO UPDATE SET category = excluded.category, updated_at = excluded.updated_at`
+    ).bind(id, userId, normalizedName, category, timestamp, timestamp).run()
+    
+    // Get the actual id (might be existing row)
+    const result = await db.prepare(
+      'SELECT id FROM merchant_categories WHERE user_id = ? AND merchant_name = ?'
+    ).bind(userId, normalizedName).first<MerchantCategory>()
     
     return NextResponse.json({
       success: true,
-      data: {
-        id: result?._id?.toString(),
-        merchant_name: normalizedName,
-        category,
-      },
+      data: { id: result?.id || id, merchant_name: normalizedName, category },
     })
   } catch (error) {
     console.error('Error saving merchant category:', error)
@@ -104,7 +87,6 @@ export async function POST(request: Request) {
   }
 }
 
-// DELETE - Remove a merchant category override
 export async function DELETE(request: Request) {
   try {
     const userId = await getCurrentUserId()
@@ -126,12 +108,10 @@ export async function DELETE(request: Request) {
       )
     }
     
-    const collection = await getMerchantCategoriesCollection()
-    
-    await collection.deleteOne({
-      user_id: new ObjectId(userId),
-      merchant_name: merchantName.toLowerCase().trim(),
-    })
+    const db = await getDb()
+    await db.prepare(
+      'DELETE FROM merchant_categories WHERE user_id = ? AND merchant_name = ?'
+    ).bind(userId, merchantName.toLowerCase().trim()).run()
     
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -94,9 +94,9 @@ export default function DashboardCharts({
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-2 border border-gray-200 rounded shadow-sm">
-          <p className="text-sm font-medium">{label}</p>
-          <p className="text-sm text-gray-600">{formatCurrency(payload[0].value)}</p>
+        <div className="bg-slate-800 border border-slate-700 p-2.5 rounded-lg shadow-xl">
+          <p className="text-sm font-medium text-slate-200">{label}</p>
+          <p className="text-sm text-slate-400">{formatCurrency(payload[0].value)}</p>
         </div>
       )
     }
@@ -104,34 +104,38 @@ export default function DashboardCharts({
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       {/* Spending Trend Chart */}
       {spendingTrendData.length > 0 && (
-        <div className="bg-white shadow rounded-lg p-5">
-          <h3 className="text-base font-semibold text-gray-800 mb-4">Spending Trend</h3>
-          <div className="h-64">
+        <div className="glass-card p-4 sm:p-5 animate-fade-in-up stagger-4">
+          <h3 className="text-xs sm:text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3 sm:mb-4">Spending Trend</h3>
+          <div className="h-48 sm:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={spendingTrendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis 
                   dataKey="name" 
-                  tick={{ fontSize: 12 }} 
+                  tick={{ fontSize: 10, fill: '#94A3B8' }} 
                   tickLine={false}
-                  axisLine={{ stroke: '#E5E7EB' }}
+                  axisLine={{ stroke: '#334155' }}
                 />
                 <YAxis 
-                  tick={{ fontSize: 12 }} 
+                  tick={{ fontSize: 10, fill: '#94A3B8' }} 
                   tickLine={false}
-                  axisLine={{ stroke: '#E5E7EB' }}
+                  axisLine={{ stroke: '#334155' }}
                   tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                  width={40}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Area
                   type="monotone"
                   dataKey="amount"
                   stroke="#3B82F6"
-                  fill="#93C5FD"
-                  fillOpacity={0.6}
+                  fill="#1E40AF"
+                  fillOpacity={0.4}
+                  isAnimationActive={true}
+                  animationDuration={1200}
+                  animationEasing="ease-out"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -141,17 +145,17 @@ export default function DashboardCharts({
 
       {/* Category Breakdown Pie Chart */}
       {categoryData.length > 0 && (
-        <div className="bg-white shadow rounded-lg p-5">
-          <h3 className="text-base font-semibold text-gray-800 mb-4">Spending by Category</h3>
-          <div className="h-64 flex items-center">
+        <div className="glass-card p-4 sm:p-5 animate-fade-in-up stagger-5">
+          <h3 className="text-xs sm:text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3 sm:mb-4">Spending by Category</h3>
+          <div className="h-48 sm:h-64 flex items-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={categoryData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
+                  innerRadius={40}
+                  outerRadius={65}
                   paddingAngle={2}
                   dataKey="value"
                 >
@@ -163,10 +167,10 @@ export default function DashboardCharts({
                   formatter={(value: number) => formatCurrency(value)}
                 />
                 <Legend 
-                  layout="vertical" 
-                  align="right" 
-                  verticalAlign="middle"
-                  formatter={(value) => <span className="text-xs text-gray-600">{value}</span>}
+                  layout="horizontal" 
+                  align="center" 
+                  verticalAlign="bottom"
+                  formatter={(value) => <span className="text-[10px] sm:text-xs text-slate-400">{value}</span>}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -175,25 +179,25 @@ export default function DashboardCharts({
       )}
 
       {/* Income vs Expenses */}
-      <div className="bg-white shadow rounded-lg p-5 lg:col-span-2">
-        <h3 className="text-base font-semibold text-gray-800 mb-4">Income vs Expenses</h3>
-        <div className="h-48">
+      <div className="glass-card p-4 sm:p-5 lg:col-span-2 animate-fade-in-up stagger-6">
+        <h3 className="text-xs sm:text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3 sm:mb-4">Income vs Expenses</h3>
+        <div className="h-36 sm:h-48">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={incomeVsExpenses} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" horizontal={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
               <XAxis 
                 type="number" 
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: '#94A3B8' }}
                 tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
               />
               <YAxis 
                 type="category" 
                 dataKey="name" 
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: '#94A3B8' }}
                 width={70}
               />
               <Tooltip formatter={(value: number) => formatCurrency(value)} />
-              <Bar dataKey="amount" radius={[0, 4, 4, 0]}>
+              <Bar dataKey="amount" radius={[0, 4, 4, 0]} isAnimationActive={true} animationDuration={1000}>
                 {incomeVsExpenses.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.fill} />
                 ))}
@@ -201,17 +205,17 @@ export default function DashboardCharts({
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="mt-4 flex justify-center gap-8 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span className="text-gray-600">Income: {formatCurrency(analytics.total_income)}</span>
+        <div className="mt-3 sm:mt-4 flex flex-wrap justify-center gap-3 sm:gap-8 text-xs sm:text-sm">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500"></div>
+            <span className="text-slate-400">Income: {formatCurrency(analytics.total_income)}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-            <span className="text-gray-600">Expenses: {formatCurrency(analytics.total_spent)}</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-rose-500"></div>
+            <span className="text-slate-400">Expenses: {formatCurrency(analytics.total_spent)}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`font-semibold ${analytics.net_flow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          <div className="flex items-center gap-1.5">
+            <span className={`font-semibold ${analytics.net_flow >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
               Net: {formatCurrency(analytics.net_flow)}
             </span>
           </div>

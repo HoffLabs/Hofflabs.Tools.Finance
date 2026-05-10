@@ -3,16 +3,24 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import Logo from '@/app/components/Logo'
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const [accountId, setAccountId] = useState('')
   const [twoFactorCode, setTwoFactorCode] = useState('')
   const [requires2FA, setRequires2FA] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-
   const router = useRouter()
+
+  // Format input as XXXX XXXX XXXX XXXX
+  const handleAccountInput = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 16)
+    const formatted = digits.replace(/(\d{4})(?=\d)/g, '$1 ').trim()
+    setAccountId(formatted)
+  }
+
+  const getRawAccountId = () => accountId.replace(/\s/g, '')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -20,34 +28,27 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      const formData = new FormData()
-      formData.append('username', username)
-      formData.append('password', password)
-      if (requires2FA) {
-        formData.append('twoFactorCode', twoFactorCode)
-      }
-
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accountId: getRawAccountId(),
+          ...(requires2FA && { twoFactorCode }),
+        }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
         if (data.requires2FA) {
-          // 2FA is required, show the 2FA input
           setRequires2FA(true)
         } else {
-          // Show error message
           setError(data.error || 'Login failed')
         }
         return
       }
 
-      // Login successful, redirect to dashboard
       router.push('/dashboard')
-
     } catch (err) {
       console.error('Login error:', err)
       setError('An error occurred during login')
@@ -57,114 +58,84 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Sign in to your account
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Or{' '}
-          <Link href="/auth/register" className="font-medium text-indigo-600 hover:text-indigo-500">
-            create a new account
+    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md animate-fade-in-up">
+        <div className="flex justify-center mb-6">
+          <Logo size={64} />
+        </div>
+        <h2 className="text-center text-3xl font-bold text-emerald-400">Hoff Labs</h2>
+        <p className="mt-2 text-center text-sm text-slate-500">
+          Enter your account number to sign in. Or{' '}
+          <Link href="/auth/register" className="font-medium text-emerald-400 hover:text-emerald-300 transition-colors">
+            generate a new account
           </Link>
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div className="glass-card py-8 px-6 sm:px-10 animate-fade-in-up stagger-2">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                Username
+              <label htmlFor="accountId" className="block text-xs font-medium text-slate-400 mb-1.5">
+                Account Number
               </label>
-              <div className="mt-1">
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  autoComplete="username"
-                  required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                />
-              </div>
+              <input
+                id="accountId"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                required
+                value={accountId}
+                onChange={(e) => handleAccountInput(e.target.value)}
+                className="input-dark text-center text-2xl font-mono tracking-widest"
+                placeholder="0000 0000 0000 0000"
+                maxLength={19}
+              />
+              <p className="text-xs text-slate-600 mt-1.5 text-center">
+                16-digit number you received when creating your account
+              </p>
             </div>
 
             {requires2FA && (
               <div>
-                <label htmlFor="twoFactorCode" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="twoFactorCode" className="block text-xs font-medium text-slate-400 mb-1.5">
                   Two-Factor Authentication Code
                 </label>
-                <div className="mt-1">
-                  <input
-                    id="twoFactorCode"
-                    name="twoFactorCode"
-                    type="text"
-                    required
-                    value={twoFactorCode}
-                    onChange={(e) => setTwoFactorCode(e.target.value)}
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    placeholder="123456"
-                  />
-                </div>
+                <input
+                  id="twoFactorCode"
+                  type="text"
+                  inputMode="numeric"
+                  required
+                  value={twoFactorCode}
+                  onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="input-dark text-center text-xl font-mono tracking-widest"
+                  placeholder="000000"
+                  maxLength={6}
+                />
               </div>
             )}
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                  Remember me
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
-                  Forgot your password?
-                </a>
-              </div>
-            </div>
 
             {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4">
-                <p className="text-red-700">{error}</p>
+              <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-3">
+                <p className="text-sm text-rose-400">{error}</p>
               </div>
             )}
 
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                {loading ? 'Signing in...' : 'Sign in'}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={loading || getRawAccountId().length !== 16}
+              className="btn-primary w-full"
+            >
+              {loading ? 'Verifying...' : 'Sign In'}
+            </button>
           </form>
+
+          <div className="mt-6 pt-6 border-t border-slate-800">
+            <p className="text-xs text-slate-600 text-center leading-relaxed">
+              No email or password needed. Your account number is your key.
+              We only store a one-way hash — even we can't read the original.
+            </p>
+          </div>
         </div>
       </div>
     </div>

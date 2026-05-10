@@ -1,4 +1,4 @@
-interface Account {
+﻿interface Account {
   id: string
   name: string
   type: string
@@ -23,8 +23,8 @@ export default function ConnectedAccounts({
   if (accounts.length === 0) return null
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">
+    <div className="glass-card p-6">
+      <h2 className="text-xl font-semibold text-slate-200 mb-4">
         Connected Accounts
       </h2>
 
@@ -32,18 +32,18 @@ export default function ConnectedAccounts({
         {accounts.map((account) => {
           // Determine account type colors and icons
           let bgColor = 'bg-blue-100'
-          let textColor = 'text-blue-600'
+          let textColor = 'text-blue-400'
           let accountTypeLabel = account.type
 
           // Customize based on account type and subtype
           if (account.type === 'depository') {
             if (account.subtype === 'checking') {
               bgColor = 'bg-blue-100'
-              textColor = 'text-blue-600'
+              textColor = 'text-blue-400'
               accountTypeLabel = 'Checking Account'
             } else if (account.subtype === 'savings') {
               bgColor = 'bg-green-100'
-              textColor = 'text-green-600'
+              textColor = 'text-emerald-400'
               accountTypeLabel = 'Savings Account'
             }
           } else if (account.type === 'credit') {
@@ -56,14 +56,14 @@ export default function ConnectedAccounts({
             accountTypeLabel = 'Loan Account'
           } else if (account.type === 'investment') {
             bgColor = 'bg-indigo-100'
-            textColor = 'text-indigo-600'
+            textColor = 'text-blue-400'
             accountTypeLabel = 'Investment Account'
           }
 
           return (
             <div
               key={account.id}
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+              className="flex items-center justify-between p-4 bg-slate-950 rounded-lg"
             >
               <div className="flex items-center space-x-3">
                 <div
@@ -75,8 +75,8 @@ export default function ConnectedAccounts({
                 </div>
 
                 <div>
-                  <p className="font-medium text-gray-900">{account.name}</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="font-medium text-slate-100">{account.name}</p>
+                  <p className="text-sm text-slate-500">
                     {accountTypeLabel} • {account.mask} • {account.currency}
                   </p>
                 </div>
@@ -84,10 +84,10 @@ export default function ConnectedAccounts({
 
               <div className="flex items-center space-x-4">
                 <div className="text-right">
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-semibold text-slate-100">
                     {formatCurrency(account.balance ? Number(account.balance) : 0)}
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-slate-500">
                     Available:{' '}
                     {formatCurrency(
                       account.available_balance
@@ -103,7 +103,7 @@ export default function ConnectedAccounts({
                       await onRemoveAccount(account.id)
                     }
                   }}
-                  className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-md  text-white bg-rose-600 hover:bg-rose-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
                   Remove
                 </button>

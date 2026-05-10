@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import Modal from '@/app/components/Modal'
@@ -199,8 +199,8 @@ export default function TopLists({
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Top Merchants */}
-        <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-          <h4 className="text-lg font-semibold text-gray-800 mb-4">Top Merchants</h4>
+        <div className="bg-slate-950 rounded-lg p-5 border border-slate-700">
+          <h4 className="text-lg font-semibold text-slate-200 mb-4">Top Merchants</h4>
           <div className="space-y-3">
             {merchants && merchants.length > 0 ? (
               <>
@@ -209,25 +209,25 @@ export default function TopLists({
                   const merchantTransactions = isExpanded ? getTransactionsForMerchant(merchant.name) : []
                   
                   return (
-                    <div key={index} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <div key={index} className="glass-card-sm overflow-hidden">
                       <div 
-                        className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 group"
+                        className="flex items-center justify-between p-3 cursor-pointer hover:bg-slate-950 group"
                         onClick={() => toggleMerchantExpand(merchant.name)}
                       >
                         <div className="flex items-center space-x-3 min-w-0 flex-1">
-                          <span className="text-lg font-bold text-gray-400 flex-shrink-0">#{index + 1}</span>
+                          <span className="text-lg font-bold text-slate-500 flex-shrink-0">#{index + 1}</span>
                           <div className="min-w-0 flex-1">
-                            <span className="text-sm font-medium text-gray-800 block truncate">{merchant.name}</span>
-                          <span className="text-xs text-gray-500">
+                            <span className="text-sm font-medium text-slate-200 block truncate">{merchant.name}</span>
+                          <span className="text-xs text-slate-500">
                               {merchant.count} transaction{merchant.count !== 1 ? 's' : ''}
                               {savedMerchant === merchant.name && (
-                                <span className="ml-2 text-green-600">✓ Category saved</span>
+                                <span className="ml-2 text-emerald-400">✓ Category saved</span>
                               )}
                             </span>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2 flex-shrink-0">
-                          <span className="text-base font-bold text-gray-900">
+                          <span className="text-base font-bold text-slate-100">
                             {formatCurrency(merchant.amount)}
                           </span>
                           <button
@@ -235,7 +235,7 @@ export default function TopLists({
                               e.stopPropagation()
                               handleOpenCategoryModal(merchant)
                             }}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                            className="p-1.5 text-slate-500 hover:text-blue-400 hover:bg-blue-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
                             title="Set category"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,7 +243,7 @@ export default function TopLists({
                             </svg>
                           </button>
                           <svg 
-                            className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+                            className={`w-4 h-4 text-slate-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
                             fill="none" 
                             stroke="currentColor" 
                             viewBox="0 0 24 24"
@@ -253,23 +253,23 @@ export default function TopLists({
                         </div>
                       </div>
                       {isExpanded && (
-                        <div className="border-t border-gray-100 bg-gray-50 max-h-64 overflow-y-auto">
+                        <div className="border-t border-slate-800 bg-slate-950 max-h-64 overflow-y-auto">
                           {merchantTransactions.length > 0 ? (
                             <div className="divide-y divide-gray-100">
                               {merchantTransactions.map((tx) => (
                                 <div key={tx._id} className="px-4 py-2 flex justify-between items-center text-sm">
                                   <div className="min-w-0 flex-1">
-                                    <p className="text-gray-700 truncate">{tx.name}</p>
-                                    <p className="text-xs text-gray-500">{formatDate(tx.date)}</p>
+                                    <p className="text-slate-300 truncate">{tx.name}</p>
+                                    <p className="text-xs text-slate-500">{formatDate(tx.date)}</p>
                                   </div>
-                                  <span className="text-gray-900 font-medium ml-3">
+                                  <span className="text-slate-100 font-medium ml-3">
                                     {formatCurrency(Math.abs(tx.amount))}
                                   </span>
                                 </div>
                               ))}
                             </div>
                           ) : (
-                            <p className="px-4 py-3 text-sm text-gray-500">No transactions found</p>
+                            <p className="px-4 py-3 text-sm text-slate-500">No transactions found</p>
                           )}
                         </div>
                       )}
@@ -279,21 +279,21 @@ export default function TopLists({
                 {merchants.length > 5 && (
                   <button
                     onClick={() => setShowAllMerchants(!showAllMerchants)}
-                    className="w-full mt-2 py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="w-full mt-2 py-2 px-4 border border-slate-700 rounded-md text-sm font-medium text-slate-300 bg-white hover:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
                     {showAllMerchants ? 'Show Less' : `Show More (${merchants.length - 5} more)`}
                   </button>
                 )}
               </>
             ) : (
-              <p className="text-sm text-gray-500">No merchant data available</p>
+              <p className="text-sm text-slate-500">No merchant data available</p>
             )}
           </div>
         </div>
 
         {/* Top Categories */}
-        <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-          <h4 className="text-lg font-semibold text-gray-800 mb-4">Top Categories</h4>
+        <div className="bg-slate-950 rounded-lg p-5 border border-slate-700">
+          <h4 className="text-lg font-semibold text-slate-200 mb-4">Top Categories</h4>
           <div className="space-y-3">
             {categories && categories.length > 0 ? (
               <>
@@ -302,26 +302,26 @@ export default function TopLists({
                   const categoryTransactions = isExpanded ? getTransactionsForCategory(category.name) : []
                   
                   return (
-                    <div key={index} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <div key={index} className="glass-card-sm overflow-hidden">
                       <div 
-                        className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50"
+                        className="flex items-center justify-between p-3 cursor-pointer hover:bg-slate-950"
                         onClick={() => toggleCategoryExpand(category.name)}
                       >
                         <div className="flex items-center space-x-3 min-w-0 flex-1">
-                          <span className="text-lg font-bold text-gray-400 flex-shrink-0">#{index + 1}</span>
+                          <span className="text-lg font-bold text-slate-500 flex-shrink-0">#{index + 1}</span>
                           <div className="min-w-0 flex-1">
-                            <span className="text-sm font-medium text-gray-800 block truncate">{category.name}</span>
+                            <span className="text-sm font-medium text-slate-200 block truncate">{category.name}</span>
                             {category.count !== undefined && (
-                              <span className="text-xs text-gray-500">{category.count} transaction{category.count !== 1 ? 's' : ''}</span>
+                              <span className="text-xs text-slate-500">{category.count} transaction{category.count !== 1 ? 's' : ''}</span>
                             )}
                           </div>
                         </div>
                         <div className="flex items-center space-x-2 flex-shrink-0">
-                          <span className="text-base font-bold text-gray-900">
+                          <span className="text-base font-bold text-slate-100">
                             {formatCurrency(category.spent)}
                           </span>
                           <svg 
-                            className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+                            className={`w-4 h-4 text-slate-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
                             fill="none" 
                             stroke="currentColor" 
                             viewBox="0 0 24 24"
@@ -331,23 +331,23 @@ export default function TopLists({
                         </div>
                       </div>
                       {isExpanded && (
-                        <div className="border-t border-gray-100 bg-gray-50 max-h-64 overflow-y-auto">
+                        <div className="border-t border-slate-800 bg-slate-950 max-h-64 overflow-y-auto">
                           {categoryTransactions.length > 0 ? (
                             <div className="divide-y divide-gray-100">
                               {categoryTransactions.map((tx) => (
                                 <div key={tx._id} className="px-4 py-2 flex justify-between items-center text-sm">
                                   <div className="min-w-0 flex-1">
-                                    <p className="text-gray-700 truncate">{tx.name}</p>
-                                    <p className="text-xs text-gray-500">{formatDate(tx.date)}</p>
+                                    <p className="text-slate-300 truncate">{tx.name}</p>
+                                    <p className="text-xs text-slate-500">{formatDate(tx.date)}</p>
                                   </div>
-                                  <span className="text-gray-900 font-medium ml-3">
+                                  <span className="text-slate-100 font-medium ml-3">
                                     {formatCurrency(Math.abs(tx.amount))}
                                   </span>
                                 </div>
                               ))}
                             </div>
                           ) : (
-                            <p className="px-4 py-3 text-sm text-gray-500">No transactions found</p>
+                            <p className="px-4 py-3 text-sm text-slate-500">No transactions found</p>
                           )}
                         </div>
                       )}
@@ -357,14 +357,14 @@ export default function TopLists({
                 {categories.length > 5 && (
                   <button
                     onClick={() => setShowAllCategories(!showAllCategories)}
-                    className="w-full mt-2 py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="w-full mt-2 py-2 px-4 border border-slate-700 rounded-md text-sm font-medium text-slate-300 bg-white hover:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
                     {showAllCategories ? 'Show Less' : `Show More (${categories.length - 5} more)`}
                   </button>
                 )}
               </>
             ) : (
-              <p className="text-sm text-gray-500">No category data available</p>
+              <p className="text-sm text-slate-500">No category data available</p>
             )}
           </div>
         </div>
@@ -380,22 +380,22 @@ export default function TopLists({
         {selectedMerchant && (
           <div className="space-y-4">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Merchant</p>
-              <p className="font-medium text-gray-900 truncate">{selectedMerchant.name}</p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-sm text-slate-400 mb-1">Merchant</p>
+              <p className="font-medium text-slate-100 truncate">{selectedMerchant.name}</p>
+              <p className="text-xs text-slate-500 mt-1">
                 {selectedMerchant.count} transaction{selectedMerchant.count !== 1 ? 's' : ''} • {formatCurrency(selectedMerchant.amount)}
               </p>
             </div>
 
             <div>
-              <label htmlFor="category-select" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="category-select" className="block text-sm font-medium text-slate-300 mb-2">
                 Category
               </label>
               <select
                 id="category-select"
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-slate-700 rounded-md  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Select a category...</option>
                 {CATEGORIES.map((cat) => (
@@ -410,7 +410,7 @@ export default function TopLists({
             <div className="flex justify-end space-x-3 pt-2">
               <button
                 onClick={handleCloseModal}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 text-sm font-medium text-slate-300 bg-white border border-slate-700 rounded-md hover:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Cancel
               </button>

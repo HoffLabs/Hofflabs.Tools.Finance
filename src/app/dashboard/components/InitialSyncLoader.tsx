@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from 'react'
 
@@ -87,10 +87,10 @@ export default function InitialSyncLoader({ onSyncComplete }: InitialSyncLoaderP
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <div className="glass-card p-8 max-w-md w-full">
           <div className="text-center">
-            <p className="text-gray-600">Checking sync status...</p>
+            <p className="text-slate-400">Checking sync status...</p>
           </div>
         </div>
       </div>
@@ -99,22 +99,22 @@ export default function InitialSyncLoader({ onSyncComplete }: InitialSyncLoaderP
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <div className="glass-card p-8 max-w-md w-full">
           <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
-              <svg className="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-rose-500/10 mb-4">
+              <svg className="h-8 w-8 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Sync Error</h2>
-            <p className="text-gray-600 mb-6">{error}</p>
+            <h2 className="text-2xl font-bold text-slate-100 mb-2">Sync Error</h2>
+            <p className="text-slate-400 mb-6">{error}</p>
             <button
               onClick={() => {
                 setError(null)
                 performSync()
               }}
-              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              className="btn-primary w-full"
             >
               Retry
             </button>
@@ -127,27 +127,27 @@ export default function InitialSyncLoader({ onSyncComplete }: InitialSyncLoaderP
   // Show manual sync prompt if accounts need initial sync
   if (needsSync && !syncing) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <div className="glass-card p-8 max-w-md w-full">
           <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-blue-100 mb-6">
-              <svg className="h-10 w-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-emerald-500/10 mb-6">
+              <svg className="h-10 w-10 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">
+            <h2 className="text-3xl font-bold text-slate-100 mb-3">
               Ready to Load Your Data
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-slate-400 mb-6">
               Click below to sync your account and load your transaction history.
             </p>
             <button
               onClick={performSync}
-              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              className="btn-primary w-full"
             >
               Sync Now
             </button>
-            <p className="text-sm text-gray-500 mt-4">
+            <p className="text-sm text-slate-500 mt-4">
               This may take a minute for the first sync
             </p>
           </div>
@@ -157,13 +157,13 @@ export default function InitialSyncLoader({ onSyncComplete }: InitialSyncLoaderP
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="glass-card p-8 max-w-md w-full">
         <div className="text-center">
           {/* Animated Icon */}
-          <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-blue-100 mb-6">
+          <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-emerald-500/10 mb-6">
             <svg 
-              className="h-10 w-10 text-blue-600 animate-spin" 
+              className="h-10 w-10 text-emerald-400 animate-spin" 
               fill="none" 
               viewBox="0 0 24 24"
             >
@@ -183,30 +183,30 @@ export default function InitialSyncLoader({ onSyncComplete }: InitialSyncLoaderP
             </svg>
           </div>
 
-          <h2 className="text-3xl font-bold text-gray-900 mb-3">
+          <h2 className="text-3xl font-bold text-slate-100 mb-3">
             Setting Up Your Dashboard
           </h2>
           
-          <p className="text-gray-600 mb-8">
+          <p className="text-slate-400 mb-8">
             {status}
           </p>
 
           {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-3 mb-4 overflow-hidden">
+          <div className="w-full bg-slate-800 rounded-full h-3 mb-4 overflow-hidden">
             <div 
-              className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-500 ease-out"
+              className="bg-gradient-to-r from-emerald-500 to-emerald-400 h-full rounded-full transition-all duration-500 ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>
 
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-slate-500">
             {progress}% complete
           </p>
 
           {syncing && (
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-              <p className="text-sm text-blue-800">
-                <strong>First time setup:</strong> We're loading your complete transaction history. 
+            <div className="mt-6 p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
+              <p className="text-sm text-slate-300">
+                <strong className="text-emerald-400">First time setup:</strong> Loading your complete transaction history. 
                 This may take a minute.
               </p>
             </div>

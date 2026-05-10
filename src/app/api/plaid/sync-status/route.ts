@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
 import { getCurrentUserId } from '@/lib/auth/utils'
-import { getBankAccountsCollection } from '@/lib/db/client'
+import { getDb } from '@/lib/db/client'
+import type { BankAccount } from '@/lib/db/types'
 
 export async function GET() {
   try {
@@ -14,64 +14,36 @@ export async function GET() {
       )
     }
     
-    const bankAccountsCollection = await getBankAccountsCollection()
+    const db = await getDb()
+    const bankAccounts = await db.prepare(
+      'SELECT id, name, initial_sync_complete, last_transaction_sync, total_transactions, earliest_transaction FROM bank_accounts WHERE user_id = ?'
+    ).bind(userId).all<BankAccount>()
     
-    // Get all bank accounts for the user
-    const bankAccounts = await bankAccountsCollection.find(
-      { user_id: new ObjectId(userId) },
-      {
-        projection: {
-          _id: 1,
-          name: 1,
-          initial_sync_complete: 1,
-          last_transaction_sync: 1,
-          total_transactions: 1,
-          earliest_transaction: 1,
-        },
-      }
-    ).toArray()
-    
-    if (bankAccounts.length === 0) {
+    if (bankAccounts.results.length === 0) {
       return NextResponse.json(
-        { 
-          success: true, 
-          data: {
-            hasAccounts: false,
-            allSynced: true,
-            accounts: [],
-          }
-        },
+        { success: true, data: { hasAccounts: false, allSynced: true, accounts: [] } },
         { status: 200 }
       )
     }
     
-    // Transform _id to id
-    const transformedAccounts = bankAccounts.map(acc => ({
-      id: acc._id.toString(),
+    const transformedAccounts = bankAccounts.results.map((acc: any) => ({
+      id: acc.id,
       name: acc.name,
-      initial_sync_complete: acc.initial_sync_complete,
+      initial_sync_complete: !!acc.initial_sync_complete,
       last_transaction_sync: acc.last_transaction_sync,
       total_transactions: acc.total_transactions,
       earliest_transaction: acc.earliest_transaction,
     }))
     
-    const allSynced = transformedAccounts.every(account => account.initial_sync_complete)
+    const allSynced = transformedAccounts.every((account: any) => account.initial_sync_complete)
     
     return NextResponse.json(
-      { 
-        success: true, 
-        data: {
-          hasAccounts: true,
-          allSynced,
-          accounts: transformedAccounts,
-        }
-      },
+      { success: true, data: { hasAccounts: true, allSynced, accounts: transformedAccounts } },
       { status: 200 }
     )
     
   } catch (error) {
     console.error('Error checking sync status:', error)
-    
     return NextResponse.json(
       { success: false, error: 'Failed to check sync status' },
       { status: 500 }

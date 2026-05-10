@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -30,19 +30,19 @@ export default function RecentTransactions({
   const displayedTransactions = showAllTransactions ? transactions : transactions.slice(0, 8)
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
+    <div className="glass-card p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-gray-800">Recent Transactions</h2>
+        <h2 className="text-xl font-semibold text-slate-200">Recent Transactions</h2>
         <Link
           href="/dashboard/transactions"
-          className="text-sm text-blue-600 hover:text-blue-800"
+          className="text-sm text-blue-400 hover:text-blue-800"
         >
           View All
         </Link>
       </div>
 
       {transactions.length === 0 ? (
-        <p className="text-gray-500">No transactions found for the selected filters.</p>
+        <p className="text-slate-500">No transactions found for the selected filters.</p>
       ) : (
         <>
           <div className="space-y-3">
@@ -64,25 +64,25 @@ export default function RecentTransactions({
               }
               
               return (
-                <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div key={transaction.id} className="flex items-center justify-between p-4 bg-slate-950 rounded-lg hover:bg-slate-800 transition-colors">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                      <span className="text-gray-600 text-sm">
+                    <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center">
+                      <span className="text-slate-400 text-sm">
                         {transaction.name.substring(0, 2).toUpperCase()}
                       </span>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{transaction.name}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="font-medium text-slate-100">{transaction.name}</p>
+                      <p className="text-sm text-slate-500">
                         {transaction.account.name} • {formatDate(transaction.date)}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`font-semibold ${isExpense ? 'text-red-600' : 'text-green-600'}`}>
+                    <p className={`font-semibold ${isExpense ? 'text-rose-400' : 'text-emerald-400'}`}>
                       {isExpense ? '-' : '+'}{formatCurrency(Math.abs(displayAmount))}
                     </p>
-                    <p className="text-sm text-gray-500">{transaction.category}</p>
+                    <p className="text-sm text-slate-500">{transaction.category}</p>
                   </div>
                 </div>
               )
@@ -91,7 +91,7 @@ export default function RecentTransactions({
           {transactions.length > 8 && (
             <button
               onClick={() => setShowAllTransactions(!showAllTransactions)}
-              className="mt-4 w-full py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="mt-4 w-full py-2 px-4 border border-slate-700 rounded-md text-sm font-medium text-slate-300 bg-white hover:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               {showAllTransactions ? 'Show Less' : `Show More (${transactions.length - 8} more)`}
             </button>

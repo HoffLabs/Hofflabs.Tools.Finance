@@ -33,25 +33,13 @@ export function useDashboardData({
       if (!accountsResponse.ok) throw new Error('Failed to fetch accounts')
       const accountsData = await accountsResponse.json()
 
-      // Fetch transactions
-      // Fetch all transactions without limit to get full history
-      let transactionsUrl = `/api/transactions`
+      // Fetch only recent transactions for display (not all history)
+      // Analytics/stats are computed server-side, so we don't need all transactions
+      let transactionsUrl = `/api/transactions?limit=100` // Only fetch 100 most recent for dashboard
       if (selectedAccounts.length > 0) {
         selectedAccounts.forEach(accountId => {
-          transactionsUrl += `${transactionsUrl.includes('?') ? '&' : '?'}account_id=${accountId}`
+          transactionsUrl += `&account_id=${accountId}`
         })
-      }
-
-      // Only add date range filter if user explicitly filters transactions
-      // Otherwise fetch all available data for analytics
-      if (dateRange !== 'all') {
-        const endDate = new Date()
-        const startDate = new Date()
-        const daysToSubtract = parseInt(dateRange)
-        startDate.setDate(endDate.getDate() - daysToSubtract)
-
-        transactionsUrl += `&start_date=${startDate.toISOString().split('T')[0]}`
-        transactionsUrl += `&end_date=${endDate.toISOString().split('T')[0]}`
       }
 
       const transactionsResponse = await fetch(transactionsUrl)

@@ -2,11 +2,15 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import '@/app/globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'Finance Monitor - Privacy-First Financial Tracking',
-  description: 'Securely monitor your finances with end-to-end encryption',
+  title: 'Hoff Labs - For People Who Hate Looking at Their Finances',
+  description: 'Track your spending, roast your habits, and maybe get out of debt (eventually)',
+  icons: {
+    icon: '/hofflabs.png',
+    apple: '/hofflabs.png',
+  },
 }
 
 export default function RootLayout({
@@ -15,8 +19,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" className="dark">
+      <body className={`${inter.className} bg-slate-950 text-slate-100 antialiased`}>{children}</body>
     </html>
   )
 }

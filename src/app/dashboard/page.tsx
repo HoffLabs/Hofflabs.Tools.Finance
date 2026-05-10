@@ -1,4 +1,4 @@
-import { getCurrentUserId } from '@/lib/auth/utils'
+﻿import { getCurrentUserId } from '@/lib/auth/utils'
 import { redirect } from 'next/navigation'
 import PlaidLinkButton from '../components/PlaidLinkButton'
 
@@ -6,8 +6,9 @@ import PlaidLinkButton from '../components/PlaidLinkButton'
 import DashboardClient from './DashboardClient'
 
 export default async function DashboardPage({ searchParams }: {
-  searchParams: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
+  const params = await searchParams
   const userId = await getCurrentUserId()
   
   if (!userId) {
@@ -15,19 +16,19 @@ export default async function DashboardPage({ searchParams }: {
   }
   
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="flex flex-col md:flex-row gap-8 py-8">
+    <div className="w-full">
+      <div className="w-full">
         {/* Main content */}
-        <div className="flex-1">
+        <div className="w-full">
           {/* Client component that will fetch and display data */}
           <DashboardClient userId={userId} />
         </div>
         
         {/* Sidebar */}
         {/* <div className="w-full md:w-80">
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Connect Bank Account</h2>
-            <p className="text-gray-600 mb-4">Securely connect your bank account to start tracking your finances.</p>
+          <div className="glass-card p-6">
+            <h2 className="text-xl font-semibold text-slate-200 mb-4">Connect Bank Account</h2>
+            <p className="text-slate-400 mb-4">Securely connect your bank account to start tracking your finances.</p>
             <PlaidLinkButton />
           </div>
         </div> */}

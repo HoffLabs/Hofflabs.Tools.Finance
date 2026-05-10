@@ -1,23 +1,67 @@
-import { ObjectId, WithoutId } from 'mongodb'
-
-// User collection
-export interface User {
-  _id?: ObjectId
-  username: string
-  password_hash: string
-  salt: string
-  encryption_key: string
-  two_factor_enabled: boolean
-  two_factor_secret: string | null
-  zip_code?: string
-  created_at: Date
-  updated_at: Date
+// Paycheck deduction fields
+export interface PaycheckDeductions {
+  retirement?: number    // 401(k) / 403(b) monthly
+  healthInsurance?: number
+  hsa?: number
+  dentalVision?: number
+  otherPreTax?: number
 }
 
-// BankAccount collection
+// User preferences
+export interface UserPreferences {
+  showRates?: boolean
+  showCharts?: boolean
+  dashboardSections?: {
+    charts?: boolean
+    accounts?: boolean
+    recentTransactions?: boolean
+  }
+  ai?: {
+    enabled?: boolean
+    apiUrl?: string
+    apiKey?: string  // encrypted at rest
+    model?: string
+  }
+  // Income & payroll
+  payType?: 'salary' | 'hourly'
+  yearlyIncome?: number
+  hourlyRate?: number
+  hoursPerWeek?: number
+  payFrequency?: 'weekly' | 'biweekly' | 'semimonthly' | 'monthly'
+  annualBonus?: number
+  monthlyIncome?: number
+  age?: number
+  nextPayDate?: string
+  payDay?: number
+  // Deductions
+  deductions?: PaycheckDeductions
+  // Branding
+  branding?: {
+    appName?: string
+    logoUrl?: string
+  }
+}
+
+// User table
+export interface User {
+  id: string
+  account_hash: string
+  hash_version: number
+  encryption_key: string
+  two_factor_enabled: number // SQLite boolean (0/1)
+  two_factor_secret: string | null
+  zip_code: string | null
+  preferences: string | null // JSON string
+  username: string | null
+  created_at: string
+  updated_at: string
+  last_accessed: string | null
+}
+
+// BankAccount table
 export interface BankAccount {
-  _id?: ObjectId
-  user_id: ObjectId
+  id: string
+  user_id: string
   plaid_item_id: string
   plaid_account_id: string
   plaid_access_token: string
@@ -28,66 +72,75 @@ export interface BankAccount {
   balance: number | null
   available_balance: number | null
   currency: string | null
-  last_transaction_sync: Date | null
-  initial_sync_complete: boolean
+  last_transaction_sync: string | null
+  initial_sync_complete: number // SQLite boolean (0/1)
   sync_cursor: string | null
-  earliest_transaction: Date | null
+  earliest_transaction: string | null
   total_transactions: number
-  created_at: Date
-  updated_at: Date
+  created_at: string
+  updated_at: string
 }
 
-// Transaction collection
+// Transaction table
 export interface Transaction {
-  _id?: ObjectId
-  account_id: ObjectId
+  id: string
+  account_id: string
   plaid_transaction_id: string
   name: string
   amount: number
   currency: string
   category: string
-  date: Date
-  pending: boolean
-  created_at: Date
-  updated_at: Date
+  date: string
+  pending: number // SQLite boolean (0/1)
+  created_at: string
+  updated_at: string
 }
 
-// SyncLog collection
+// SyncLog table
 export interface SyncLog {
-  _id?: ObjectId
-  user_id: ObjectId
-  account_id: ObjectId
-  last_sync: Date
+  id: string
+  user_id: string
+  account_id: string
+  last_sync: string
   status: string
   error_message: string | null
-  created_at: Date
-  updated_at: Date
+  created_at: string
+  updated_at: string
 }
 
-// Session collection
+// Session table
 export interface Session {
-  _id?: ObjectId
+  id: string
   token: string
-  user_id: ObjectId
-  expires_at: Date
-  created_at: Date
-  updated_at: Date
+  user_id: string
+  expires_at: string
+  created_at: string
+  updated_at: string
 }
 
-// MerchantCategory collection - user-defined category overrides for merchants
+// MerchantCategory table
 export interface MerchantCategory {
-  _id?: ObjectId
-  user_id: ObjectId
-  merchant_name: string  // Normalized merchant name (lowercase)
+  id: string
+  user_id: string
+  merchant_name: string
   category: string
-  created_at: Date
-  updated_at: Date
+  created_at: string
+  updated_at: string
 }
 
-// For inserting new documents (without _id)
-export type InsertUser = WithoutId<User>
-export type InsertBankAccount = WithoutId<BankAccount>
-export type InsertTransaction = WithoutId<Transaction>
-export type InsertSyncLog = WithoutId<SyncLog>
-export type InsertSession = WithoutId<Session>
-export type InsertMerchantCategory = WithoutId<MerchantCategory>
+// AI category cache
+export interface AiCategory {
+  id: string
+  merchant_name: string
+  category: string
+  created_at: string
+}
+
+// AI daily summary cache
+export interface AiSummary {
+  id: string
+  user_id: string
+  date: string
+  summary: string
+  created_at: string
+}

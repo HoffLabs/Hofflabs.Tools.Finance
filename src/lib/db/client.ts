@@ -1,88 +1,33 @@
-import { MongoClient, Db, Collection } from 'mongodb'
-import { User, BankAccount, Transaction, SyncLog, Session, MerchantCategory } from './types'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
-const MONGODB_URI = process.env.MONGODB_URI
+export type D1Database = ReturnType<typeof getD1Sync>
 
-if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable')
+function getD1Sync() {
+  // This is a type helper — actual usage is always via getDb()
+  return null as unknown as import('@cloudflare/workers-types').D1Database
 }
 
-declare global {
-  var _mongoClientPromise: Promise<MongoClient> | undefined
-}
-
-let client: MongoClient
-let clientPromise: Promise<MongoClient>
-
-if (process.env.NODE_ENV === 'development') {
-  // In development mode, use a global variable to preserve the connection
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(MONGODB_URI)
-    global._mongoClientPromise = client.connect()
+// Get the D1 database binding from Cloudflare context
+export async function getDb() {
+  const { env } = await getCloudflareContext({ async: true })
+  const db = (env as Record<string, unknown>).DB as import('@cloudflare/workers-types').D1Database
+  if (!db) {
+    throw new Error('D1 database binding "DB" not found. Check wrangler.jsonc configuration.')
   }
-  clientPromise = global._mongoClientPromise
-} else {
-  // In production mode, create a new client for each request
-  client = new MongoClient(MONGODB_URI)
-  clientPromise = client.connect()
+  return db
 }
 
-export { clientPromise }
-
-// Helper to get the database instance
-export async function getDb(): Promise<Db> {
-  const client = await clientPromise
-  return client.db()
+// Helper to generate UUIDs for primary keys
+export function generateId(): string {
+  return crypto.randomUUID()
 }
 
-// Collection accessors
-export async function getUsersCollection(): Promise<Collection<User>> {
-  const db = await getDb()
-  return db.collection<User>('users')
+// Helper to get current ISO timestamp string
+export function now(): string {
+  return new Date().toISOString()
 }
 
-export async function getBankAccountsCollection(): Promise<Collection<BankAccount>> {
-  const db = await getDb()
-  return db.collection<BankAccount>('bankAccounts')
-}
-
-export async function getTransactionsCollection(): Promise<Collection<Transaction>> {
-  const db = await getDb()
-  return db.collection<Transaction>('transactions')
-}
-
-export async function getSyncLogsCollection(): Promise<Collection<SyncLog>> {
-  const db = await getDb()
-  return db.collection<SyncLog>('syncLogs')
-}
-
-export async function getSessionsCollection(): Promise<Collection<Session>> {
-  const db = await getDb()
-  return db.collection<Session>('sessions')
-}
-
-export async function getMerchantCategoriesCollection(): Promise<Collection<MerchantCategory>> {
-  const db = await getDb()
-  return db.collection<MerchantCategory>('merchantCategories')
-}
-
-export async function connectToDatabase() {
-  try {
-    await clientPromise
-    console.log('Database connected successfully')
-  } catch (error) {
-    console.error('Database connection error:', error)
-    throw error
-  }
-}
-
-export async function disconnectFromDatabase() {
-  try {
-    const client = await clientPromise
-    await client.close()
-    console.log('Database disconnected successfully')
-  } catch (error) {
-    console.error('Database disconnection error:', error)
-    throw error
-  }
+// Helper to build SQL placeholders for IN clauses
+export function sqlPlaceholders(count: number): string {
+  return Array(count).fill('?').join(', ')
 }

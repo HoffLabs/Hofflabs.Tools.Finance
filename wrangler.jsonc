@@ -1,0 +1,28 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"main": ".open-next/worker.js",
+	"name": "finance-monitor",
+	"compatibility_date": "2026-05-10",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "finance-monitor-db",
+			"database_id": "28b29cbd-3aa5-4bcc-a42b-2f20883cf52d"
+		}
+	],
+	"vars": {
+		"PLAID_ENV": "production",
+		"SESSION_COOKIE_NAME": "finance_monitor_session",
+		"NEXTAUTH_URL": "http://localhost:3000"
+	},
+	"observability": {
+		"enabled": true
+	}
+}

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
 import { getCurrentUserId } from '@/lib/auth/utils'
-import { getUsersCollection } from '@/lib/db/client'
+import { getDb, now } from '@/lib/db/client'
+import type { User, UserPreferences } from '@/lib/db/types'
 
 export async function GET() {
   try {
@@ -14,13 +14,10 @@ export async function GET() {
       )
     }
     
-    const users = await getUsersCollection()
-    
-    // Get user settings
-    const user = await users.findOne(
-      { _id: new ObjectId(userId) },
-      { projection: { two_factor_enabled: 1, username: 1, zip_code: 1 } }
-    )
+    const db = await getDb()
+    const user = await db.prepare(
+      'SELECT two_factor_enabled, username, zip_code, preferences FROM users WHERE id = ?'
+    ).bind(userId).first<User>()
     
     if (!user) {
       return NextResponse.json(
@@ -29,13 +26,16 @@ export async function GET() {
       )
     }
     
+    const prefs: UserPreferences = user.preferences ? JSON.parse(user.preferences) : {}
+    
     return NextResponse.json(
       {
         success: true,
         data: {
-          twoFactorEnabled: user.two_factor_enabled,
+          twoFactorEnabled: !!user.two_factor_enabled,
           username: user.username,
           zipCode: user.zip_code || '',
+          preferences: prefs,
         },
       },
       { status: 200 }
@@ -43,7 +43,6 @@ export async function GET() {
     
   } catch (error) {
     console.error('Error getting user settings:', error)
-    
     return NextResponse.json(
       { success: false, error: 'Failed to get user settings' },
       { status: 500 }
@@ -63,52 +62,52 @@ export async function PUT(request: Request) {
     }
     
     const body = await request.json()
-    const { twoFactorEnabled, zipCode } = body
+    const { twoFactorEnabled, zipCode, preferences } = body
     
-    const users = await getUsersCollection()
+    const db = await getDb()
     
-    // Build update object with only provided fields
-    const updateFields: Record<string, any> = {
-      updated_at: new Date(),
-    }
+    // Build SET clause dynamically
+    const sets: string[] = ['updated_at = ?']
+    const params: any[] = [now()]
     
     if (twoFactorEnabled !== undefined) {
-      updateFields.two_factor_enabled = twoFactorEnabled
+      sets.push('two_factor_enabled = ?')
+      params.push(twoFactorEnabled ? 1 : 0)
     }
     
     if (zipCode !== undefined) {
-      // Validate zip code format (5 digits)
       if (zipCode && !/^\d{5}$/.test(zipCode)) {
         return NextResponse.json(
           { success: false, error: 'Invalid zip code format. Must be 5 digits.' },
           { status: 400 }
         )
       }
-      updateFields.zip_code = zipCode
+      sets.push('zip_code = ?')
+      params.push(zipCode)
+    }
+
+    if (preferences !== undefined) {
+      const existingUser = await db.prepare(
+        'SELECT preferences FROM users WHERE id = ?'
+      ).bind(userId).first<User>()
+      const existingPrefs: UserPreferences = existingUser?.preferences ? JSON.parse(existingUser.preferences) : {}
+      const mergedPrefs = { ...existingPrefs, ...preferences }
+      sets.push('preferences = ?')
+      params.push(JSON.stringify(mergedPrefs))
     }
     
-    // Update user settings
-    await users.updateOne(
-      { _id: new ObjectId(userId) },
-      {
-        $set: updateFields,
-      }
-    )
+    params.push(userId)
+    await db.prepare(
+      `UPDATE users SET ${sets.join(', ')} WHERE id = ?`
+    ).bind(...params).run()
     
     return NextResponse.json(
-      {
-        success: true,
-        data: {
-          twoFactorEnabled,
-          zipCode,
-        },
-      },
+      { success: true, data: { twoFactorEnabled, zipCode } },
       { status: 200 }
     )
     
   } catch (error) {
     console.error('Error updating user settings:', error)
-    
     return NextResponse.json(
       { success: false, error: 'Failed to update user settings' },
       { status: 500 }

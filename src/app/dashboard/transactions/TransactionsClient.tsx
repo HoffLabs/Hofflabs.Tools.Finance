@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useMemo } from 'react'
 import Modal from '@/app/components/Modal'
@@ -38,6 +38,10 @@ export default function TransactionsClient({ userId }: { userId: string }) {
   
   // Sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  
+  // AI categorization state
+  const [aiCategorizing, setAiCategorizing] = useState(false)
+  const [aiProgress, setAiProgress] = useState({ done: 0, total: 0 })
 
   const fetchAllData = async () => {
     try {
@@ -197,6 +201,59 @@ export default function TransactionsClient({ userId }: { userId: string }) {
     setSelectedTransactions(new Set())
   }
 
+  // AI auto-categorize all transactions
+  const handleAiCategorizeAll = async () => {
+    setAiCategorizing(true)
+    try {
+      // Get unique merchant names
+      const uniqueNames = Array.from(new Set(allTransactions.map(t => t.name).filter(Boolean)))
+      setAiProgress({ done: 0, total: uniqueNames.length })
+
+      // Batch in chunks of 20
+      const chunkSize = 20
+      for (let i = 0; i < uniqueNames.length; i += chunkSize) {
+        const chunk = uniqueNames.slice(i, i + chunkSize)
+        const res = await fetch('/api/ai/categorize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ names: chunk }),
+        })
+        const data = await res.json()
+        if (data.success) {
+          // Save each categorization as a merchant override
+          for (const [name, category] of Object.entries(data.data)) {
+            if (category && category !== 'Uncategorized') {
+              await fetch('/api/merchant-categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ merchant_name: name, category }),
+              })
+            }
+          }
+        }
+        setAiProgress({ done: Math.min(i + chunkSize, uniqueNames.length), total: uniqueNames.length })
+      }
+
+      // Refresh overrides
+      const overridesResponse = await fetch('/api/merchant-categories')
+      if (overridesResponse.ok) {
+        const overridesData = await overridesResponse.json()
+        const overridesMap = new Map<string, string>()
+        if (overridesData.data) {
+          for (const override of overridesData.data) {
+            overridesMap.set(override.merchant_name, override.category)
+          }
+        }
+        setCategoryOverrides(overridesMap)
+      }
+    } catch (err) {
+      console.error('AI categorization error:', err)
+    } finally {
+      setAiCategorizing(false)
+      setAiProgress({ done: 0, total: 0 })
+    }
+  }
+
   // Bulk category assignment
   const handleBulkCategoryAssign = async () => {
     if (!bulkCategory || selectedTransactions.size === 0) return
@@ -283,21 +340,21 @@ export default function TransactionsClient({ userId }: { userId: string }) {
 
   if (loading) {
     return (
-      <div className="bg-white shadow rounded-lg p-6">
-        <p className="text-gray-600">Loading transactions...</p>
+      <div className="glass-card p-6">
+        <p className="text-slate-400">Loading transactions...</p>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
-          <p className="text-red-700">Error: {error}</p>
+      <div className="glass-card p-6">
+        <div className="bg-rose-500/10 border-l-4 border-rose-500/30 p-4 mb-4">
+          <p className="text-rose-400">Error: {error}</p>
         </div>
         <button
           onClick={fetchAllData}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md  text-white bg-blue-600 hover:bg-blue-500"
         >
           Retry
         </button>
@@ -306,10 +363,46 @@ export default function TransactionsClient({ userId }: { userId: string }) {
   }
 
   return (
+    <div className="space-y-4">
+      {/* Header with AI button */}
+      <div className="flex items-center justify-between animate-fade-in-up">
+        <h1 className="text-2xl font-bold text-slate-100">Transactions</h1>
+        <button
+          onClick={handleAiCategorizeAll}
+          disabled={aiCategorizing || allTransactions.length === 0}
+          className="btn-primary text-sm flex items-center gap-2"
+        >
+          {aiCategorizing ? (
+            <>
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>
+              AI Categorizing ({aiProgress.done}/{aiProgress.total})
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+              AI Auto-Categorize All
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* AI progress bar */}
+      {aiCategorizing && (
+        <div className="glass-card p-4 animate-fade-in-up">
+          <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
+            <span>Categorizing {aiProgress.total} unique merchants via AI...</span>
+            <span>{Math.round((aiProgress.done / Math.max(aiProgress.total, 1)) * 100)}%</span>
+          </div>
+          <div className="w-full bg-slate-700 rounded-full h-1.5 overflow-hidden">
+            <div className="bg-gradient-to-r from-violet-500 to-blue-500 h-full rounded-full transition-all duration-500" style={{ width: `${(aiProgress.done / Math.max(aiProgress.total, 1)) * 100}%` }} />
+          </div>
+        </div>
+      )}
+
     <div className="flex gap-6 items-start">
       {/* Filter Sidebar */}
       <aside className={`${sidebarOpen ? 'w-80' : 'w-0'} flex-shrink-0 transition-all duration-300 sticky top-4 self-start`}>
-        <div className={`bg-white shadow-lg rounded-xl border border-gray-200 overflow-hidden ${!sidebarOpen && 'invisible'}`}>
+        <div className={`glass-card-lg rounded-xl border border-slate-700 overflow-hidden ${!sidebarOpen && 'invisible'}`}>
           {/* Sidebar Header */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-4">
             <div className="flex items-center justify-between">
@@ -336,11 +429,11 @@ export default function TransactionsClient({ userId }: { userId: string }) {
           <div className="p-4 space-y-5 max-h-[calc(100vh-12rem)] overflow-y-auto">
             {/* Search */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
                 Search
               </label>
               <div className="relative">
-                <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 <input
@@ -348,20 +441,20 @@ export default function TransactionsClient({ userId }: { userId: string }) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Merchant name..."
-                  className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all"
                 />
               </div>
             </div>
             
             {/* Time Period */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
                 Time Period
               </label>
               <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all"
+                className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all"
               >
                 <option value="7">Last 7 Days</option>
                 <option value="30">Last 30 Days</option>
@@ -373,10 +466,10 @@ export default function TransactionsClient({ userId }: { userId: string }) {
             
             {/* Transaction Type */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
                 Type
               </label>
-              <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+              <div className="flex rounded-lg border border-slate-700 overflow-hidden">
                 {[
                   { value: 'all', label: 'All' },
                   { value: 'expense', label: 'Expenses' },
@@ -388,7 +481,7 @@ export default function TransactionsClient({ userId }: { userId: string }) {
                     className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
                       transactionType === type.value
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                        : 'bg-slate-950 text-slate-400 hover:bg-slate-800'
                     }`}
                   >
                     {type.label}
@@ -399,13 +492,13 @@ export default function TransactionsClient({ userId }: { userId: string }) {
             
             {/* Category */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
                 Category
               </label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all"
+                className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all"
               >
                 <option value="">All Categories</option>
                 {availableCategories.map((cat) => (
@@ -416,12 +509,12 @@ export default function TransactionsClient({ userId }: { userId: string }) {
             
             {/* Amount Range */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
                 Amount Range
               </label>
               <div className="flex gap-2 items-center">
                 <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
                   <input
                     type="number"
                     value={minAmount}
@@ -429,12 +522,12 @@ export default function TransactionsClient({ userId }: { userId: string }) {
                     placeholder="Min"
                     min="0"
                     step="0.01"
-                    className="w-full pl-7 pr-2 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all"
+                    className="w-full pl-7 pr-2 py-2 text-sm bg-slate-950 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all"
                   />
                 </div>
-                <span className="text-gray-400 text-sm">–</span>
+                <span className="text-slate-500 text-sm">–</span>
                 <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
                   <input
                     type="number"
                     value={maxAmount}
@@ -442,7 +535,7 @@ export default function TransactionsClient({ userId }: { userId: string }) {
                     placeholder="Max"
                     min="0"
                     step="0.01"
-                    className="w-full pl-7 pr-2 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all"
+                    className="w-full pl-7 pr-2 py-2 text-sm bg-slate-950 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all"
                   />
                 </div>
               </div>
@@ -450,8 +543,8 @@ export default function TransactionsClient({ userId }: { userId: string }) {
             
             {/* Accounts */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                Accounts {selectedAccounts.size > 0 && <span className="text-blue-600">({selectedAccounts.size})</span>}
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                Accounts {selectedAccounts.size > 0 && <span className="text-blue-400">({selectedAccounts.size})</span>}
               </label>
               <div className="space-y-1.5 max-h-40 overflow-y-auto">
                 {accounts.map((account) => (
@@ -460,19 +553,19 @@ export default function TransactionsClient({ userId }: { userId: string }) {
                     onClick={() => toggleAccount(account.id)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all ${
                       selectedAccounts.has(account.id)
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                        : 'bg-gray-50 text-gray-700 border border-transparent hover:bg-gray-100'
+                        ? 'bg-blue-50 text-blue-400 border border-blue-200'
+                        : 'bg-slate-950 text-slate-300 border border-transparent hover:bg-slate-800'
                     }`}
                   >
                     <span className="truncate">{account.name}</span>
-                    <span className="text-xs text-gray-400 ml-2">••{account.mask}</span>
+                    <span className="text-xs text-slate-500 ml-2">••{account.mask}</span>
                   </button>
                 ))}
               </div>
               {selectedAccounts.size > 0 && (
                 <button
                   onClick={() => setSelectedAccounts(new Set())}
-                  className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  className="mt-2 text-xs text-blue-400 hover:text-blue-800 font-medium"
                 >
                   Clear account selection
                 </button>
@@ -480,15 +573,15 @@ export default function TransactionsClient({ userId }: { userId: string }) {
             </div>
             
             {/* Sort */}
-            <div className="border-t border-gray-100 pt-4">
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            <div className="border-t border-slate-800 pt-4">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
                 Sort By
               </label>
               <div className="flex gap-2">
                 <select
                   value={sortField}
                   onChange={(e) => setSortField(e.target.value as SortField)}
-                  className="flex-1 px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all"
+                  className="flex-1 px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all"
                 >
                   <option value="date">Date</option>
                   <option value="amount">Amount</option>
@@ -496,15 +589,15 @@ export default function TransactionsClient({ userId }: { userId: string }) {
                 </select>
                 <button
                   onClick={() => setSortDirection(d => d === 'asc' ? 'desc' : 'asc')}
-                  className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all"
+                  className="px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg hover:bg-slate-800 transition-all"
                   title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
                 >
                   {sortDirection === 'asc' ? (
-                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                     </svg>
                   ) : (
-                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   )}
@@ -518,23 +611,23 @@ export default function TransactionsClient({ userId }: { userId: string }) {
       {/* Main Content */}
       <main className="flex-1 min-w-0">
         {/* Toggle Sidebar Button + Stats Bar */}
-        <div className="bg-white shadow-sm rounded-xl p-4 mb-4 flex items-center justify-between">
+        <div className="glass-card-sm rounded-xl p-4 mb-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
               title={sidebarOpen ? 'Hide Filters' : 'Show Filters'}
             >
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
               </svg>
             </button>
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-500">Showing</span>
-              <span className="font-bold text-blue-600">{filteredAndSortedTransactions.length}</span>
-              <span className="text-gray-500">of</span>
-              <span className="font-semibold text-gray-900">{allTransactions.length}</span>
-              <span className="text-gray-500">transactions</span>
+              <span className="text-slate-500">Showing</span>
+              <span className="font-bold text-blue-400">{filteredAndSortedTransactions.length}</span>
+              <span className="text-slate-500">of</span>
+              <span className="font-semibold text-slate-100">{allTransactions.length}</span>
+              <span className="text-slate-500">transactions</span>
             </div>
           </div>
           
@@ -545,7 +638,7 @@ export default function TransactionsClient({ userId }: { userId: string }) {
               </span>
               <button
                 onClick={clearAllFilters}
-                className="text-xs text-gray-500 hover:text-gray-700 font-medium"
+                className="text-xs text-slate-500 hover:text-slate-300 font-medium"
               >
                 Clear all
               </button>
@@ -570,7 +663,7 @@ export default function TransactionsClient({ userId }: { userId: string }) {
               </div>
               <button
                 onClick={() => setShowBulkModal(true)}
-                className="px-4 py-2 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-white text-blue-400 rounded-lg font-semibold hover:bg-blue-50 transition-colors flex items-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
@@ -582,15 +675,15 @@ export default function TransactionsClient({ userId }: { userId: string }) {
         )}
         
         {/* Transactions List */}
-        <div className="bg-white shadow-sm rounded-xl">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-800">
+        <div className="glass-card-sm rounded-xl">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+            <h2 className="text-lg font-semibold text-slate-200">
               Transactions
             </h2>
             {filteredAndSortedTransactions.length > 0 && (
               <button
                 onClick={selectedTransactions.size === filteredAndSortedTransactions.length ? deselectAll : selectAllVisible}
-                className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                className="text-sm font-medium text-blue-400 hover:text-blue-800 transition-colors"
               >
                 {selectedTransactions.size === filteredAndSortedTransactions.length ? 'Deselect All' : 'Select All'}
               </button>
@@ -602,10 +695,10 @@ export default function TransactionsClient({ userId }: { userId: string }) {
               <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
-              <p className="text-gray-500">No transactions match your filters</p>
+              <p className="text-slate-500">No transactions match your filters</p>
               <button
                 onClick={clearAllFilters}
-                className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                className="mt-3 text-sm text-blue-400 hover:text-blue-800 font-medium"
               >
                 Clear all filters
               </button>
@@ -624,7 +717,7 @@ export default function TransactionsClient({ userId }: { userId: string }) {
                     className={`flex items-center justify-between px-6 py-4 cursor-pointer transition-all ${
                       isSelected
                         ? 'bg-blue-50'
-                        : 'hover:bg-gray-50'
+                        : 'hover:bg-slate-950'
                     }`}
                   >
                     <div className="flex items-center gap-4 min-w-0 flex-1">
@@ -633,7 +726,7 @@ export default function TransactionsClient({ userId }: { userId: string }) {
                         className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
                           isSelected
                             ? 'bg-blue-600 border-blue-600'
-                            : 'border-gray-300 bg-white'
+                            : 'border-slate-700 bg-white'
                         }`}
                       >
                         {isSelected && (
@@ -644,26 +737,26 @@ export default function TransactionsClient({ userId }: { userId: string }) {
                       </div>
                       
                       <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-gray-600 text-sm font-medium">
+                        <span className="text-slate-400 text-sm font-medium">
                           {transaction.name.substring(0, 2).toUpperCase()}
                         </span>
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="relative">
-                          <p className="font-medium text-gray-900 whitespace-nowrap overflow-hidden" style={{ maskImage: 'linear-gradient(to right, black 85%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, black 85%, transparent 100%)' }}>
+                          <p className="font-medium text-slate-100 whitespace-nowrap overflow-hidden" style={{ maskImage: 'linear-gradient(to right, black 85%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, black 85%, transparent 100%)' }}>
                             {transaction.name}
                           </p>
                         </div>
-                        <p className="text-sm text-gray-500 truncate">
+                        <p className="text-sm text-slate-500 truncate">
                           {transaction.account.name} • {formatDate(transaction.date)}
                         </p>
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0 ml-4">
-                      <p className={`font-semibold ${txIsExpense ? 'text-gray-900' : 'text-green-600'}`}>
+                      <p className={`font-semibold ${txIsExpense ? 'text-slate-100' : 'text-emerald-400'}`}>
                         {txIsExpense ? '-' : '+'}{formatCurrency(Math.abs(Number(transaction.amount)))}
                       </p>
-                      <p className={`text-sm ${category === 'Uncategorized' ? 'text-gray-400 italic' : 'text-gray-500'}`}>
+                      <p className={`text-sm ${category === 'Uncategorized' ? 'text-slate-500 italic' : 'text-slate-500'}`}>
                         {category}
                       </p>
                     </div>
@@ -682,13 +775,13 @@ export default function TransactionsClient({ userId }: { userId: string }) {
         title={`Assign Category to ${selectedTransactions.size} Transaction${selectedTransactions.size !== 1 ? 's' : ''}`}
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-slate-400">
             This will set the category for all merchants in the selected transactions.
           </p>
           <select
             value={bulkCategory}
             onChange={(e) => setBulkCategory(e.target.value)}
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border-2 border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">Select a category...</option>
             {CATEGORIES.map((cat) => (
@@ -698,7 +791,7 @@ export default function TransactionsClient({ userId }: { userId: string }) {
           <div className="flex justify-end gap-3 pt-2">
             <button
               onClick={() => setShowBulkModal(false)}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
+              className="px-4 py-2 text-slate-400 hover:text-slate-200 font-medium transition-colors"
             >
               Cancel
             </button>
@@ -712,6 +805,7 @@ export default function TransactionsClient({ userId }: { userId: string }) {
           </div>
         </div>
       </Modal>
+    </div>
     </div>
   )
 }

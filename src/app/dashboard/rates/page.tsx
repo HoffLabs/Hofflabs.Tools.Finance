@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation'
+﻿import { redirect } from 'next/navigation'
 import { getCurrentUserId } from '@/lib/auth/utils'
 import RatesClient from './RatesClient'
 

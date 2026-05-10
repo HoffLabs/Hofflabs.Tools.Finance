@@ -1,0 +1,276 @@
+"use client"
+
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import AccountsOverview from './components/AccountsOverview'
+import DashboardCharts from './components/DashboardCharts'
+import InitialSyncLoader from './components/InitialSyncLoader'
+import { useSync } from './hooks/useSync'
+import { useDashboardData } from './hooks/useDashboardData'
+import { useCountUp } from './hooks/useCountUp'
+import { formatCurrency, formatDate } from './utils/formatters'
+import { DashboardSkeleton } from '@/app/components/Skeleton'
+import SyncProgressOverlay from './components/SyncProgressOverlay'
+import AiSpendingSummary from './components/AiSpendingSummary'
+import DebtPayoffCalculator from './components/DebtPayoffCalculator'
+
+function StatCard({ label, value, prefix = '', color, delay }: {
+  label: string; value: number; prefix?: string; color: string; delay: string
+}) {
+  const animatedValue = useCountUp(value)
+  const colorMap: Record<string, string> = {
+    emerald: 'from-emerald-600/20 to-emerald-500/5 border-emerald-500/20 text-emerald-400',
+    lime: 'from-lime-600/20 to-lime-500/5 border-lime-500/20 text-lime-400',
+    amber: 'from-amber-600/20 to-amber-500/5 border-amber-500/20 text-amber-400',
+    rose: 'from-rose-600/20 to-rose-500/5 border-rose-500/20 text-rose-400',
+  }
+  return (
+    <div className={`glass-card hover-lift p-5 bg-gradient-to-br ${colorMap[color]} animate-fade-in-up ${delay}`}>
+      <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">{label}</p>
+      <p className={`text-2xl font-bold ${color === 'rose' ? 'text-rose-400' : color === 'emerald' ? 'text-emerald-400' : color === 'lime' ? 'text-lime-400' : color === 'amber' ? 'text-amber-400' : 'text-slate-100'}`}>
+        {prefix}{formatCurrency(animatedValue)}
+      </p>
+    </div>
+  )
+}
+
+export default function DashboardClient({ userId }: { userId: string }) {
+  const [timeRange, setTimeRange] = useState<string>('monthly')
+  const [showLoader, setShowLoader] = useState(true)
+  const [checkingSync, setCheckingSync] = useState(true)
+  const [monthlyIncome, setMonthlyIncome] = useState<number>(0)
+
+  useEffect(() => {
+    const checkSyncStatus = async () => {
+      try {
+        const response = await fetch('/api/plaid/sync-status')
+        const data = await response.json()
+        if (data.success && data.data.allSynced) setShowLoader(false)
+      } catch {
+        setShowLoader(false)
+      } finally {
+        setCheckingSync(false)
+      }
+    }
+    checkSyncStatus()
+  }, [])
+
+  const [showCustomize, setShowCustomize] = useState(false)
+  const [showCharts, setShowCharts] = useState(true)
+  const [showAccounts, setShowAccounts] = useState(true)
+  const [showRecentTx, setShowRecentTx] = useState(true)
+
+  const { syncing, initialSyncDone, triggerSync } = useSync()
+  const { accounts, transactions, analytics, loading, error, refetch } = useDashboardData({
+    selectedAccounts: [], dateRange: 'all', timeRange,
+    customStartDate: '', customEndDate: '', initialSyncDone,
+  })
+
+  // Load dashboard section preferences and income
+  useEffect(() => {
+    fetch('/api/user/settings').then(r => r.ok ? r.json() : null).then(d => {
+      const prefs = d?.data?.preferences
+      if (prefs?.dashboardSections) {
+        if (prefs.dashboardSections.charts === false) setShowCharts(false)
+        if (prefs.dashboardSections.accounts === false) setShowAccounts(false)
+        if (prefs.dashboardSections.recentTransactions === false) setShowRecentTx(false)
+      }
+      if (prefs?.showCharts === false) setShowCharts(false)
+      if (prefs?.monthlyIncome) setMonthlyIncome(prefs.monthlyIncome)
+    }).catch(() => {})
+  }, [])
+
+  const totalBalance = accounts.reduce((sum, account) => {
+    const balance = account.balance ? Number(account.balance) : 0
+    return account.type === 'credit' ? sum - balance : sum + balance
+  }, 0)
+
+  const depositoryTotal = accounts.filter(a => a.type === 'depository').reduce((s, a) => s + (a.balance || 0), 0)
+  const creditTotal = accounts.filter(a => a.type === 'credit').reduce((s, a) => s + (a.balance || 0), 0)
+
+  const handleRemoveAccount = async (accountId: string) => {
+    try {
+      const response = await fetch(`/api/accounts/disconnect?account_id=${accountId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+      if (response.ok) refetch()
+    } catch (err) {
+      console.error('Error removing account:', err)
+    }
+  }
+
+  const getTimeLabel = () => {
+    const labels: Record<string, string> = { weekly: 'This week', monthly: 'This month', yearly: 'This year', lastyear: 'Last year' }
+    return labels[timeRange] || 'Custom range'
+  }
+
+  if (checkingSync) return <DashboardSkeleton />
+  if (showLoader) return <InitialSyncLoader onSyncComplete={() => setShowLoader(false)} />
+  if (loading) return <DashboardSkeleton />
+
+  if (error) {
+    return (
+      <div className="p-6 lg:p-8">
+        <div className="glass-card p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center">
+              <svg className="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-200">Oops, we couldn't fetch your financial chaos</p>
+              <p className="text-xs text-slate-500">{error}</p>
+            </div>
+          </div>
+          <button onClick={refetch} className="btn-primary text-sm">Retry</button>
+        </div>
+      </div>
+    )
+  }
+
+  const recentTransactions = transactions.slice(0, 8)
+
+  return (
+    <div className="p-6 lg:p-8 space-y-6">
+      {/* Sync overlay */}
+      {syncing && <SyncProgressOverlay />}
+
+      {/* Header */}
+      <div className="flex items-center justify-between animate-fade-in-up stagger-1">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-100">Dashboard</h1>
+          <p className="text-sm text-slate-500 mt-1">{accounts.length} account{accounts.length !== 1 ? 's' : ''} connected</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowCustomize(!showCustomize)}
+            className="btn-ghost text-sm flex items-center gap-1.5 border border-slate-700"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+            Customize
+          </button>
+          <button
+            onClick={() => triggerSync(false)}
+            disabled={syncing}
+            className="btn-primary text-sm flex items-center gap-2"
+          >
+            <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {syncing ? 'Syncing the Chaos...' : 'Sync My Mess'}
+          </button>
+        </div>
+      </div>
+
+      {/* Customize panel */}
+      {showCustomize && (
+        <div className="glass-card p-4 flex flex-wrap gap-4 items-center animate-fade-in-up">
+          <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Show:</span>
+          {[{ key: 'charts', label: 'Charts', state: showCharts, set: setShowCharts },
+            { key: 'accounts', label: 'Accounts', state: showAccounts, set: setShowAccounts },
+            { key: 'recentTransactions', label: 'Recent Transactions', state: showRecentTx, set: setShowRecentTx },
+          ].map(item => (
+            <label key={item.key} className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={item.state} onChange={(e) => {
+                item.set(e.target.checked)
+                fetch('/api/user/settings', {
+                  method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ preferences: { dashboardSections: { [item.key]: e.target.checked } } }),
+                })
+              }} className="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500/50" />
+              <span className="text-sm text-slate-300">{item.label}</span>
+            </label>
+          ))}
+        </div>
+      )}
+
+      {/* AI Spending Roast */}
+      <AiSpendingSummary />
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard label="Net Worth" value={totalBalance} color={totalBalance >= 0 ? 'emerald' : 'rose'} delay="stagger-1" />
+        <StatCard label="Cash Money" value={depositoryTotal} color="lime" delay="stagger-2" />
+        <StatCard label="Debt Burden" value={creditTotal} color="amber" delay="stagger-3" />
+      </div>
+
+      {/* Time Range + Charts */}
+      <div className="flex items-center justify-between animate-fade-in-up stagger-4">
+        <h2 className="text-lg font-semibold text-slate-200">Overview — {getTimeLabel()}</h2>
+        <select
+          value={timeRange}
+          onChange={(e) => setTimeRange(e.target.value)}
+          className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+        >
+          <option value="weekly">This Week</option>
+          <option value="monthly">This Month</option>
+          <option value="yearly">This Year</option>
+          <option value="lastyear">Last Year</option>
+        </select>
+      </div>
+
+      {showCharts && analytics && (
+        <DashboardCharts analytics={analytics} timeRange={timeRange} formatCurrency={formatCurrency} />
+      )}
+
+      {/* Debt Payoff Calculator */}
+      <DebtPayoffCalculator 
+        totalDebt={creditTotal} 
+        monthlySpending={analytics?.totalSpent || 0}
+        monthlyIncome={monthlyIncome}
+      />
+
+      {/* Accounts + Recent Transactions side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Accounts */}
+        {showAccounts && (
+        <div className="animate-fade-in-up stagger-5">
+          <AccountsOverview
+            accounts={accounts}
+            totalBalance={totalBalance}
+            syncing={syncing}
+            onSync={() => triggerSync(false)}
+            onRemoveAccount={handleRemoveAccount}
+            formatCurrency={formatCurrency}
+          />
+        </div>
+        )}
+
+        {/* Recent Transactions */}
+        {showRecentTx && (
+        <div className="glass-card p-5 animate-fade-in-up stagger-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Recent Transactions</h3>
+            <Link href="/dashboard/transactions" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+              View all →
+            </Link>
+          </div>
+          {recentTransactions.length > 0 ? (
+            <div className="space-y-0.5">
+              {recentTransactions.map((tx: any, i: number) => {
+                const account = accounts.find((a: any) => a.id === tx.account_id)
+                const isCreditCard = account?.type === 'credit'
+                const isExpense = isCreditCard ? tx.amount < 0 : tx.amount > 0
+                return (
+                  <div key={tx._id} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-slate-800/50 transition-colors group">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-200 truncate group-hover:text-slate-100">{tx.name}</p>
+                      <p className="text-xs text-slate-500">{formatDate(tx.date)}</p>
+                    </div>
+                    <span className={`text-sm font-semibold ml-3 tabular-nums ${isExpense ? 'text-slate-300' : 'text-emerald-400'}`}>
+                      {isExpense ? '-' : '+'}{formatCurrency(Math.abs(tx.amount))}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500 py-4 text-center">No transactions yet. Living off the grid? Respect. 🌲</p>
+          )
+        </div>
+        )}
+      </div>
+    </div>
+  )
+}

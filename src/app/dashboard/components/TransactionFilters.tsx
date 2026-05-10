@@ -1,4 +1,4 @@
-interface Account {
+﻿interface Account {
   id: string
   name: string
   mask: string
@@ -20,22 +20,22 @@ export default function TransactionFilters({
   onDateRangeChange,
 }: TransactionFiltersProps) {
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">Transaction Filters</h2>
+    <div className="glass-card p-6">
+      <h2 className="text-xl font-semibold text-slate-200 mb-4">Transaction Filters</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-slate-300 mb-2">
             Filter by Accounts
           </label>
-          <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3">
+          <div className="space-y-2 max-h-48 overflow-y-auto border border-slate-700 rounded-md p-3">
             <label className="flex items-center space-x-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={selectedAccounts.length === 0}
                 onChange={() => onSelectedAccountsChange([])}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500/50"
               />
-              <span className="text-sm text-gray-700">All Accounts</span>
+              <span className="text-sm text-slate-300">All Accounts</span>
             </label>
             {accounts.map((account) => (
               <label key={account.id} className="flex items-center space-x-2 cursor-pointer">
@@ -49,22 +49,22 @@ export default function TransactionFilters({
                       onSelectedAccountsChange(selectedAccounts.filter(id => id !== account.id))
                     }
                   }}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500/50"
                 />
-                <span className="text-sm text-gray-700">{account.name} ({account.mask})</span>
+                <span className="text-sm text-slate-300">{account.name} ({account.mask})</span>
               </label>
             ))}
           </div>
         </div>
         <div>
-          <label htmlFor="date-range" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="date-range" className="block text-sm font-medium text-slate-300 mb-1">
             Date Range
           </label>
           <select
             id="date-range"
             value={dateRange}
             onChange={(e) => onDateRangeChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
           >
             <option value="all">All Time</option>
             <option value="7">Last 7 Days</option>
