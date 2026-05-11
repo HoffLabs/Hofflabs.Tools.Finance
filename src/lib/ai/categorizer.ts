@@ -183,6 +183,12 @@ IMPORTANT rules:
 - "SQ *" prefixes are Square merchant payments — categorize by the merchant name after the prefix.
 - "AMZN MKTP" = Amazon = Shopping. "GOOGLE *YOUTUBE" = Subscriptions.
 - Payroll, salary, direct deposits from employers = Income.
+- Brokerage purchases, stock trades, ETFs, dividends, crypto = Investments.
+- Software companies (Reallusion, Anthropic, GMG Inc, GitHub, JetBrains) and digital product purchases = Software & Digital.
+- ATM fees, bank service charges, overdraft fees, maintenance fees = Bank Fees.
+- Tax payments (IRS, state/federal/property tax, tax prep) = Taxes.
+- CPA, accountant, attorney, lawyer, consultant, financial advisor services = Professional Services.
+- Outdoor stores (REI, Bass Pro, Cabela's, Go Outdoors), camping, hiking = Outdoor & Recreation.
 
 Respond with ONLY the category name from this list:
 ${CATEGORIES_LIST.join(', ')}, Uncategorized
@@ -205,8 +211,14 @@ IMPORTANT rules:
 - "SQ *" prefixes = Square merchant — categorize by the merchant name after the prefix.
 - "AMZN MKTP" = Shopping. "GOOGLE *YOUTUBE" = Subscriptions.
 - Payroll, salary, direct deposits = Income.
+- Brokerage purchases, stock trades, ETFs, dividends, crypto = Investments.
+- Software companies (Reallusion, Anthropic, GMG Inc, GitHub, JetBrains) = Software & Digital.
+- ATM fees, bank service charges, overdraft fees = Bank Fees.
+- Tax payments (IRS, state/federal/property) = Taxes.
+- CPA, accountant, attorney, lawyer, consultant = Professional Services.
+- Outdoor stores (REI, Bass Pro, Cabela's, Go Outdoors) = Outdoor & Recreation.
 
-Categories: ${CATEGORIES_LIST.join(', ')}, Uncategorized
+Categories:
 
 Respond with ONLY numbered results in this exact format:
 1. Category

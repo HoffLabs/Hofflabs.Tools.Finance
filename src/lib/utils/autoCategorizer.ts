@@ -115,6 +115,38 @@ export const CATEGORY_RULES: Record<string, string[]> = {
     'payroll', 'salary', 'direct deposit', 'direct dep', 'paycheck',
     'employer', 'wages', 'income', 'bonus', 'commission',
   ],
+  'Investments': [
+    'investment', 'stock', 'brokerage', 'dividend', 'capital gain',
+    'mutual fund', 'etf', 'securities', 'schwab', 'fidelity', 'vanguard',
+    'etrade', 'e*trade', 'robinhood', 'td ameritrade', 'merrill',
+    'wealthfront', 'betterment', 'coinbase', 'crypto', 'bitcoin',
+  ],
+  'Software & Digital': [
+    'software', 'saas', 'reallusion', 'anthropic', 'openai', 'gmg inc',
+    'green man gaming', 'digital river', 'github', 'gitlab', 'jetbrains',
+    'license', 'sliger', 'newegg', 'b&h photo',
+  ],
+  'Bank Fees': [
+    'atm fee', 'atm transaction fee', 'non-wells fargo atm', 'non-wf atm',
+    'bank fee', 'service charge', 'overdraft', 'maintenance fee',
+    'monthly fee', 'wire fee', 'insufficient funds', 'nsf fee',
+    'foreign transaction fee', 'account fee',
+  ],
+  'Taxes': [
+    'tax paymnt', 'tax payment', 'irs', 'state tax', 'federal tax',
+    'property tax', 'income tax', 'tax refund', 'tax return',
+    'estimated tax', 'tax prep',
+  ],
+  'Professional Services': [
+    'cpa', 'accountant', 'accounting', 'attorney', 'lawyer', 'legal',
+    'consultant', 'consulting', 'notary', 'financial advisor',
+    'staheli jacobsen', 'h&r block', 'turbotax', 'jackson hewitt',
+  ],
+  'Outdoor & Recreation': [
+    'outdoor', 'outdoors', 'recreation', 'camping', 'hiking',
+    'rei', 'bass pro', 'cabelas', 'go outdoors', 'sportsman',
+    'hunting', 'fishing', 'national park',
+  ],
 }
 
 // Predefined category list for UI dropdowns

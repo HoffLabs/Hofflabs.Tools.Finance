@@ -15,6 +15,12 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Pets': 'from-yellow-500 to-yellow-400', 'Transfer': 'from-gray-500 to-gray-400',
   'Credit Card Payments': 'from-teal-500 to-teal-400', 'Income': 'from-emerald-600 to-emerald-500',
   'Loan Payment': 'from-orange-600 to-orange-500',
+  'Investments': 'from-blue-600 to-blue-500',
+  'Software & Digital': 'from-indigo-600 to-indigo-500',
+  'Bank Fees': 'from-red-600 to-red-500',
+  'Taxes': 'from-amber-600 to-amber-500',
+  'Professional Services': 'from-teal-600 to-teal-500',
+  'Outdoor & Recreation': 'from-green-600 to-green-500',
   'Uncategorized': 'from-slate-600 to-slate-500',
 }
 
@@ -27,6 +33,7 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
   const [monthlyIncome, setMonthlyIncome] = useState(0)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [showAllCategories, setShowAllCategories] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPeriod, setSelectedPeriod] = useState('all')
   const [statsTimeRange, setStatsTimeRange] = useState<'weekly' | 'monthly' | 'yearly' | 'all'>('all')
@@ -60,6 +67,29 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
     category_breakdown: Array<{ name: string; spent: number; count: number }>
   } | null>(null)
 
+  // --- SessionStorage cache helpers ---
+  const CACHE_KEY = 'txn_cache'
+  const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+  const writeCache = useCallback((key: string, data: any) => {
+    try {
+      sessionStorage.setItem(`${CACHE_KEY}_${key}`, JSON.stringify({ ts: Date.now(), data }))
+    } catch { /* quota exceeded – ignore */ }
+  }, [])
+
+  const readCache = useCallback(<T,>(key: string): T | null => {
+    try {
+      const raw = sessionStorage.getItem(`${CACHE_KEY}_${key}`)
+      if (!raw) return null
+      const parsed = JSON.parse(raw)
+      if (Date.now() - parsed.ts > CACHE_TTL) {
+        sessionStorage.removeItem(`${CACHE_KEY}_${key}`)
+        return null
+      }
+      return parsed.data as T
+    } catch { return null }
+  }, [])
+
   // Fetch transactions with pagination
   const fetchTransactions = useCallback(async (offset = 0, append = false) => {
     try {
@@ -70,9 +100,13 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
       if (res.ok) {
         const data = await res.json()
         const newTx = data.data.transactions || []
-        setTransactions(prev => append ? [...prev, ...newTx] : newTx)
+        setTransactions(append ? (prev => [...prev, ...newTx]) : () => newTx)
         setHasMore(data.data.hasMore)
         setTotalCount(data.data.total)
+        // Cache first page only
+        if (offset === 0) {
+          writeCache('transactions', { transactions: newTx, hasMore: data.data.hasMore, total: data.data.total })
+        }
       }
     } catch (err) {
       console.error('Error fetching transactions:', err)
@@ -80,7 +114,7 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [])
+  }, [writeCache])
 
   // Load more transactions
   const loadMore = useCallback(() => {
@@ -135,43 +169,74 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
   }, [hasMore, loadingMore, loading, loadMore])
 
   useEffect(() => {
+    // Restore from cache instantly to avoid loading flash
+    const cachedTx = readCache<{ transactions: any[]; hasMore: boolean; total: number }>('transactions')
+    const cachedAccounts = readCache<any[]>('accounts')
+    const cachedOverrides = readCache<Array<{ merchant_name: string; category: string }>>('overrides')
+    const cachedStats = readCache<any>('stats_all')
+    const cachedIncome = readCache<number>('monthlyIncome')
+
+    let hasCached = false
+    if (cachedTx) {
+      setTransactions(cachedTx.transactions)
+      setHasMore(cachedTx.hasMore)
+      setTotalCount(cachedTx.total)
+      hasCached = true
+    }
+    if (cachedAccounts) setAccounts(cachedAccounts)
+    if (cachedOverrides) {
+      const map = new Map<string, string>()
+      for (const o of cachedOverrides) map.set(o.merchant_name, o.category)
+      setMerchantOverrides(map)
+    }
+    if (cachedStats) setServerStats(cachedStats)
+    if (cachedIncome) setMonthlyIncome(cachedIncome)
+    if (hasCached) setLoading(false)
+
+    // Then refresh in background
     const fetchData = async () => {
       try {
-        // Fetch initial data in parallel
         const [accRes, overridesRes, settingsRes, statsRes] = await Promise.all([
           fetch('/api/accounts'),
           fetch('/api/merchant-categories'),
           fetch('/api/user/settings'),
-          fetch('/api/stats?time_range=all'), // Get all-time stats from server
+          fetch('/api/stats?time_range=all'),
         ])
 
         if (accRes.ok) {
           const accData = await accRes.json()
-          setAccounts(accData.data.accounts || [])
+          const accs = accData.data.accounts || []
+          setAccounts(accs)
+          writeCache('accounts', accs)
         }
 
         if (overridesRes.ok) {
           const overridesData = await overridesRes.json()
           const map = new Map<string, string>()
+          const overridesList: Array<{ merchant_name: string; category: string }> = []
           if (overridesData.data) {
             for (const o of overridesData.data) {
               map.set(o.merchant_name, o.category)
+              overridesList.push({ merchant_name: o.merchant_name, category: o.category })
             }
           }
           setMerchantOverrides(map)
+          writeCache('overrides', overridesList)
         }
 
         if (settingsRes.ok) {
           const settingsData = await settingsRes.json()
-          setMonthlyIncome(settingsData.data?.preferences?.monthlyIncome || 0)
+          const income = settingsData.data?.preferences?.monthlyIncome || 0
+          setMonthlyIncome(income)
+          writeCache('monthlyIncome', income)
         }
         
         if (statsRes.ok) {
           const statsData = await statsRes.json()
           setServerStats(statsData.data)
+          writeCache('stats_all', statsData.data)
         }
         
-        // Fetch first page of transactions
         await fetchTransactions(0, false)
       } catch (err) {
         console.error('Error fetching data:', err)
@@ -179,7 +244,7 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
       }
     }
     fetchData()
-  }, [fetchTransactions])
+  }, [fetchTransactions, readCache, writeCache])
   
   // Refetch stats when time range changes (but not on initial load)
   const [initialLoadDone, setInitialLoadDone] = useState(false)
@@ -608,20 +673,22 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
             </div>
           )}
 
-          {/* Category breakdown - compact 2-col grid */}
+          {/* Category breakdown - expandable 2-col grid */}
           {showCategoryPanel && serverCategoryBreakdown.length > 0 && (
             <>
               {showStats && <div className="border-t border-slate-700/50" />}
               <div className="flex items-center justify-between">
                 <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Categories</h3>
-                {selectedCategory && (
-                  <button onClick={() => setSelectedCategory(null)} className="text-[10px] text-emerald-400 hover:text-emerald-300">
-                    Clear
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {selectedCategory && (
+                    <button onClick={() => setSelectedCategory(null)} className="text-[10px] text-emerald-400 hover:text-emerald-300">
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
-                {serverCategoryBreakdown.slice(0, 8).map(cat => {
+                {(showAllCategories ? serverCategoryBreakdown : serverCategoryBreakdown.slice(0, 8)).map(cat => {
                   const maxAmount = serverCategoryBreakdown[0]?.spent || 1
                   const pct = (cat.spent / maxAmount) * 100
                   return (
@@ -650,13 +717,32 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
                   )
                 })}
               </div>
+              {serverCategoryBreakdown.length > 8 && (
+                <button
+                  onClick={() => setShowAllCategories(!showAllCategories)}
+                  className="text-[10px] text-emerald-400 hover:text-emerald-300 transition-colors mt-1 flex items-center gap-1 mx-auto"
+                >
+                  {showAllCategories ? (
+                    <>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+                      Show less
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                      Show all {serverCategoryBreakdown.length} categories
+                    </>
+                  )}
+                </button>
+              )}
             </>
           )}
         </div>
       )}
 
-      {/* Filters */}
-      <div className="glass-card p-4 space-y-3">
+      {/* Filters + Transactions — unified card */}
+      <div className="glass-card overflow-hidden">
+        <div className="p-4 space-y-3">
         <div className="flex flex-wrap gap-3 items-center">
           <div className="flex-1 min-w-[200px]">
             <input
@@ -765,48 +851,47 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Bulk Action Bar */}
-      {selectedTxIds.size > 0 && (
-        <div className="glass-card p-3 flex items-center gap-3 animate-fade-in-up border-emerald-500/30">
-          <span className="text-xs text-slate-400">{selectedTxIds.size} selected</span>
-          <select
-            value={bulkCategory}
-            onChange={(e) => setBulkCategory(e.target.value)}
-            className="px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-          >
-            <option value="">Assign category...</option>
-            {CATEGORIES.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-          <button
-            onClick={handleBulkCategoryAssign}
-            disabled={!bulkCategory}
-            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
-          >
-            Apply
-          </button>
-          <button
-            onClick={() => setSelectedTxIds(new Set())}
-            className="text-xs text-slate-500 hover:text-slate-300 ml-auto"
-          >
-            Clear selection
-          </button>
         </div>
-      )}
 
-      {/* Transactions List */}
-      <div>
+        {/* Bulk Action Bar */}
+        {selectedTxIds.size > 0 && (
+          <div className="px-4 py-3 bg-emerald-500/5 border-t border-emerald-500/20 flex items-center gap-3">
+            <span className="text-xs text-slate-400">{selectedTxIds.size} selected</span>
+            <select
+              value={bulkCategory}
+              onChange={(e) => setBulkCategory(e.target.value)}
+              className="px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+            >
+              <option value="">Assign category...</option>
+              {CATEGORIES.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+            <button
+              onClick={handleBulkCategoryAssign}
+              disabled={!bulkCategory}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+            >
+              Apply
+            </button>
+            <button
+              onClick={() => setSelectedTxIds(new Set())}
+              className="text-xs text-slate-500 hover:text-slate-300 ml-auto"
+            >
+              Clear selection
+            </button>
+          </div>
+        )}
+
+        {/* Transactions List */}
         {dates.length === 0 ? (
-          <div className="glass-card p-12 text-center">
+          <div className="p-12 text-center border-t border-slate-700/50">
             <p className="text-slate-400">No transactions found. Try adjusting your filters.</p>
           </div>
         ) : (
-          <div className="glass-card overflow-hidden">
+          <>
             {/* Select all header */}
-            <div className="px-5 py-2 bg-slate-800/30 border-b border-slate-700/50 flex items-center gap-3">
+            <div className="px-5 py-2 bg-slate-800/30 border-t border-b border-slate-700/50 flex items-center gap-3">
               <input
                 type="checkbox"
                 checked={flatTxIds.length > 0 && flatTxIds.every(id => selectedTxIds.has(id))}
@@ -884,7 +969,7 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
                 </div>
               )
             })}
-          </div>
+          </>
         )}
         
         {/* Infinite scroll trigger / Load more */}
