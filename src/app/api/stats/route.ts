@@ -52,6 +52,7 @@ export async function GET(request: Request) {
       const now = new Date()
       let startDate: Date
       
+      // Calendar-based ranges
       if (timeRange === 'weekly') {
         startDate = new Date()
         const day = startDate.getDay()
@@ -60,6 +61,14 @@ export async function GET(request: Request) {
         startDate.setHours(0, 0, 0, 0)
       } else if (timeRange === 'monthly') {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+      } else if (timeRange === 'yearly') {
+        startDate = new Date(now.getFullYear(), 0, 1)
+      // Rolling "last N days" ranges
+      } else if (timeRange.startsWith('last_')) {
+        const days = parseInt(timeRange.replace('last_', ''))
+        startDate = new Date()
+        startDate.setDate(startDate.getDate() - days)
+        startDate.setHours(0, 0, 0, 0)
       } else {
         startDate = new Date(now.getFullYear(), 0, 1)
       }

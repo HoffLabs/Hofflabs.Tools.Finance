@@ -35,8 +35,7 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
   const [loadingMore, setLoadingMore] = useState(false)
   const [showAllCategories, setShowAllCategories] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedPeriod, setSelectedPeriod] = useState('all')
-  const [statsTimeRange, setStatsTimeRange] = useState<'weekly' | 'monthly' | 'yearly' | 'all'>('all')
+  const [timeframe, setTimeframe] = useState('all')
   const [selectedType, setSelectedType] = useState<'all' | 'spending' | 'income'>('all')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedAccount, setSelectedAccount] = useState<string>('all')
@@ -200,7 +199,7 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
           fetch('/api/accounts'),
           fetch('/api/merchant-categories'),
           fetch('/api/user/settings'),
-          fetch('/api/stats?time_range=all'),
+          fetch(`/api/stats?time_range=${timeframe}`),
         ])
 
         if (accRes.ok) {
@@ -246,7 +245,7 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
     fetchData()
   }, [fetchTransactions, readCache, writeCache])
   
-  // Refetch stats when time range changes (but not on initial load)
+  // Refetch stats when timeframe changes (but not on initial load)
   const [initialLoadDone, setInitialLoadDone] = useState(false)
   useEffect(() => {
     if (!initialLoadDone) {
@@ -255,7 +254,7 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
     }
     const fetchStats = async () => {
       try {
-        const statsRes = await fetch(`/api/stats?time_range=${statsTimeRange}`)
+        const statsRes = await fetch(`/api/stats?time_range=${timeframe}`)
         if (statsRes.ok) {
           const statsData = await statsRes.json()
           setServerStats(statsData.data)
@@ -265,7 +264,7 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
       }
     }
     fetchStats()
-  }, [statsTimeRange, initialLoadDone])
+  }, [timeframe, initialLoadDone])
 
   const getAccountName = (accountId: string) => {
     const account = accounts.find(a => a.id === accountId)
@@ -284,15 +283,38 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
 
   const getCategory = (tx: any) => autoCategorize(tx.name, merchantOverrides)
 
+  // Compute client-side date cutoff from unified timeframe
+  const getTimeframeCutoff = useCallback((): Date | null => {
+    if (timeframe === 'all') return null
+    const now = new Date()
+    if (timeframe === 'weekly') {
+      const d = new Date()
+      const day = d.getDay()
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+      d.setDate(diff)
+      d.setHours(0, 0, 0, 0)
+      return d
+    }
+    if (timeframe === 'monthly') return new Date(now.getFullYear(), now.getMonth(), 1)
+    if (timeframe === 'yearly') return new Date(now.getFullYear(), 0, 1)
+    if (timeframe.startsWith('last_')) {
+      const days = parseInt(timeframe.replace('last_', ''))
+      const d = new Date()
+      d.setDate(d.getDate() - days)
+      d.setHours(0, 0, 0, 0)
+      return d
+    }
+    return null
+  }, [timeframe])
+
   // Filter transactions
   const filteredTx = useMemo(() => {
+    const cutoff = getTimeframeCutoff()
     return transactions.filter(tx => {
       if (searchQuery && !tx.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
 
-      if (selectedPeriod !== 'all') {
+      if (cutoff) {
         const txDate = new Date(tx.date)
-        const cutoff = new Date()
-        cutoff.setDate(cutoff.getDate() - parseInt(selectedPeriod))
         if (txDate < cutoff) return false
       }
 
@@ -315,7 +337,7 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
 
       return true
     })
-  }, [transactions, searchQuery, selectedPeriod, selectedType, selectedCategory, selectedAccount, minAmount, maxAmount, merchantOverrides])
+  }, [transactions, searchQuery, timeframe, getTimeframeCutoff, selectedType, selectedCategory, selectedAccount, minAmount, maxAmount, merchantOverrides])
 
   // Category breakdown for filtered transactions
   const categoryBreakdown = useMemo(() => {
@@ -596,15 +618,22 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
           <p className="text-sm text-slate-500 mt-1">{totalCount.toLocaleString()} transactions</p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Global time period for stats */}
           <select
-            value={statsTimeRange}
-            onChange={(e) => setStatsTimeRange(e.target.value as any)}
+            value={timeframe}
+            onChange={(e) => setTimeframe(e.target.value)}
             className="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
           >
-            <option value="weekly">This Week</option>
-            <option value="monthly">This Month</option>
-            <option value="yearly">This Year</option>
+            <optgroup label="Calendar">
+              <option value="weekly">This Week</option>
+              <option value="monthly">This Month</option>
+              <option value="yearly">This Year</option>
+            </optgroup>
+            <optgroup label="Rolling">
+              <option value="last_7">Last 7 Days</option>
+              <option value="last_30">Last 30 Days</option>
+              <option value="last_90">Last 90 Days</option>
+              <option value="last_365">Last 365 Days</option>
+            </optgroup>
             <option value="all">All Time</option>
           </select>
           <button
@@ -668,7 +697,7 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
                 <span className="text-sm font-bold text-blue-400">{formatCurrency(avgTransaction)}</span>
               </div>
               <span className="text-[10px] text-slate-600 ml-auto">
-                {statsTimeRange === 'weekly' ? 'This week' : statsTimeRange === 'monthly' ? 'This month' : statsTimeRange === 'yearly' ? 'This year' : 'All time'}
+                {{ weekly: 'This week', monthly: 'This month', yearly: 'This year', last_7: 'Last 7 days', last_30: 'Last 30 days', last_90: 'Last 90 days', last_365: 'Last 365 days', all: 'All time' }[timeframe] || 'All time'}
               </span>
             </div>
           )}
@@ -753,18 +782,6 @@ export default function ModernTransactionsClient({ userId }: { userId: string })
               className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
             />
           </div>
-
-          <select
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
-            className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-          >
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-            <option value="365">Last year</option>
-            <option value="all">All time</option>
-          </select>
 
           <select
             value={selectedAccount}
